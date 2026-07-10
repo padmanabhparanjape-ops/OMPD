@@ -2,11 +2,14 @@ import cv2
 
 from vision.camera import Camera
 from vision.yolo_detector import YOLODetector
+from vision.face_detector import FaceDetector
 
 
 camera = Camera()
 
 detector = YOLODetector()
+
+face_detector = FaceDetector()
 
 while True:
 
@@ -17,10 +20,11 @@ while True:
 
     detections = detector.detect(frame)
 
-    frame = detector.draw(
-        frame,
-        detections
-    )
+    frame = detector.draw(frame, detections)
+
+    faces = face_detector.detect(frame)
+
+    frame = face_detector.draw(frame, faces)
 
     cv2.imshow(
         "OmniGuardian Lite",
