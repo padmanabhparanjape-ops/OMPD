@@ -24,6 +24,8 @@ while True:
 
     faces = face_detector.detect(frame)
 
+    frame = face_detector.blur_faces(frame, faces)
+
     frame = face_detector.draw(frame, faces)
 
     cv2.imshow(

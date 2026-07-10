@@ -72,4 +72,41 @@ class FaceDetector:
                 2
             )
 
+    def blur_faces(self, frame, detections, blur_level=51):
+        """
+        Blur all detected faces.
+
+        Args:
+            frame: Original frame
+            detections: Face detections from detect()
+            blur_level: Must be an odd number (31, 51, 71...)
+
+        Returns:
+            Frame with blurred faces.
+        """
+
+        for detection in detections:
+
+            x1, y1, x2, y2 = detection["bbox"]
+
+            # Prevent coordinates from going outside the image
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(frame.shape[1], x2)
+            y2 = min(frame.shape[0], y2)
+
+            face = frame[y1:y2, x1:x2]
+
+            if face.size == 0:
+                continue
+
+            blurred_face = cv2.GaussianBlur(
+                face,
+                (blur_level, blur_level),
+                0
+            )
+
+            frame[y1:y2, x1:x2] = blurred_face
+
         return frame
+        
