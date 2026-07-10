@@ -71,6 +71,7 @@ class FaceDetector:
                 (255, 0, 0),
                 2
             )
+        return frame   
 
     def blur_faces(self, frame, detections, blur_level=51):
         """

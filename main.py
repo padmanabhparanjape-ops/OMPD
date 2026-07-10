@@ -29,7 +29,7 @@ while True:
     frame = face_detector.draw(frame, faces)
 
     cv2.imshow(
-        "OmniGuardian Lite",
+        "OMPD",
         frame
     )
 
