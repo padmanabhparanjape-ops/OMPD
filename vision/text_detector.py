@@ -1,5 +1,6 @@
 import cv2
 import easyocr
+import re
 
 
 class TextDetector:
@@ -13,6 +14,28 @@ class TextDetector:
         Returns EasyOCR results.
         """
         return self.reader.readtext(frame)
+    
+    def is_sensitive(self, text):
+
+        text = text.strip()
+
+        # Email
+        if re.fullmatch(r'[\w\.-]+@[\w\.-]+\.\w+', text):
+            return True
+
+        # Phone number (10 digits)
+        if re.fullmatch(r'\d{10}', text):
+            return True
+
+        # Aadhaar (12 digits)
+        if re.fullmatch(r'\d{12}', text):
+            return True
+
+        # PAN
+        if re.fullmatch(r'[A-Z]{5}[0-9]{4}[A-Z]', text):
+            return True
+
+        return False
 
     def blur_text(self, frame, results):
         """
@@ -22,6 +45,8 @@ class TextDetector:
         for result in results:
 
             bbox, text, confidence = result
+            if not self.is_sensitive(text):
+                continue
 
             x_coords = [int(point[0]) for point in bbox]
             y_coords = [int(point[1]) for point in bbox]
