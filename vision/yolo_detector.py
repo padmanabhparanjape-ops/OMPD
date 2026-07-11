@@ -1,11 +1,14 @@
 import cv2
 from ultralytics import YOLO
 from config.config import SENSITIVE_OBJECTS
+import time
 
 class YOLODetector:
-    def __init__(self, model_path="models/yolov8n.pt", conf=0.5):
+    def __init__(self, model_path="models/yolov8n.pt", conf=0.5,db=None):
         self.model = YOLO(model_path)
         self.conf = conf
+        self.db = db
+        self.last_logged = {}
 
         # Objects to blur
         self.sensitive_objects = SENSITIVE_OBJECTS
@@ -27,6 +30,23 @@ class YOLODetector:
 
                 cls_id = int(box.cls[0])
                 label = self.model.names[cls_id]
+
+                if self.db:
+
+                    current_time = time.time()
+
+                    if (
+                        label not in self.last_logged
+                        or current_time - self.last_logged[label] > 1
+                    ):
+
+                        self.db.log_detection(
+                            "Object",
+                            label,
+                            confidence
+                        )
+
+                        self.last_logged[label] = current_time
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 

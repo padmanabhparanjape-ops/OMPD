@@ -4,10 +4,14 @@ from vision.camera import Camera
 from vision.yolo_detector import YOLODetector
 from vision.face_detector import FaceDetector
 from vision.text_detector import TextDetector
+from database import Database
 
 camera = Camera()
 
-detector = YOLODetector()
+db = Database()
+detector = YOLODetector(db=db)
+
+# detector = YOLODetector()
 
 face_detector = FaceDetector()
 
@@ -48,5 +52,5 @@ while True:
         break
 
 camera.release()
-
+db.close()
 cv2.destroyAllWindows()
