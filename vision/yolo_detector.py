@@ -1,103 +1,62 @@
-
+import cv2
 from ultralytics import YOLO
-
+from config.config import SENSITIVE_OBJECTS
 
 class YOLODetector:
+    def __init__(self, model_path="models/yolov8n.pt", conf=0.5):
+        self.model = YOLO(model_path)
+        self.conf = conf
 
-    def __init__(
-        self,
-        model_name="yolov8n.pt",
-        confidence=0.5
-    ):
+        # Objects to blur
+        self.sensitive_objects = SENSITIVE_OBJECTS
 
-        self.model = YOLO(model_name)
-        self.confidence = confidence
-
-        self.sensitive_objects = {
-            "person",
-            "cell phone",
-            "laptop",
-            "keyboard",
-            "mouse",
-            "book",
-            "tv",
-            "remote",
-            "monitor"
-        }
-
-    def detect(self, frame):
-
-        detections = []
-
-        results = self.model(
-            frame,
-            conf=self.confidence,
-            verbose=False
-        )
+    def detect_and_blur(self, frame):
+        results = self.model(frame, verbose=False)
 
         for result in results:
+            boxes = result.boxes
 
-            for box in result.boxes:
-
-                class_id = int(box.cls[0])
-
-                label = self.model.names[class_id]
-
+            for box in boxes:
                 confidence = float(box.conf[0])
 
-                if label not in self.sensitive_objects:
+                if confidence < self.conf:
                     continue
 
-                x1, y1, x2, y2 = map(
-                    int,
-                    box.xyxy[0]
+                cls_id = int(box.cls[0])
+                label = self.model.names[cls_id]
+
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                # Keep coordinates inside frame
+                h, w = frame.shape[:2]
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(w, x2)
+                y2 = min(h, y2)
+
+                if label in self.sensitive_objects:
+
+                    roi = frame[y1:y2, x1:x2]
+
+                    if roi.size != 0:
+                        blur = cv2.GaussianBlur(roi, (51, 51), 30)
+                        frame[y1:y2, x1:x2] = blur
+
+                    color = (0, 0, 255)      # Red = blurred object
+                else:
+                    color = (0, 255, 0)      # Green = normal object
+
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+                text = f"{label} {confidence:.2f}"
+                cv2.putText(
+                    frame,
+                    text,
+                    (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    color,
+                    2
                 )
-
-                detections.append(
-                    {
-                        "label": label,
-                        "confidence": confidence,
-                        "bbox": (
-                            x1,
-                            y1,
-                            x2,
-                            y2
-                        )
-                    }
-                )
-
-        return detections
-
-    def draw(self, frame, detections):
-
-        import cv2
-
-        for detection in detections:
-
-            x1, y1, x2, y2 = detection["bbox"]
-
-            label = detection["label"]
-
-            confidence = detection["confidence"]
-
-            cv2.rectangle(
-                frame,
-                (x1, y1),
-                (x2, y2),
-                (0, 255, 0),
-                2
-            )
-
-            text = f"{label} {confidence:.2f}"
-
-            cv2.putText(
-                frame,
-                text,
-                (x1, y1 - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (0, 255, 0),
-                2
-            )
 
         return frame

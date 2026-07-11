@@ -18,9 +18,7 @@ while True:
     if not success:
         break
 
-    detections = detector.detect(frame)
-
-    frame = detector.draw(frame, detections)
+    frame = detector.detect_and_blur(frame)
 
     faces = face_detector.detect(frame)
 
