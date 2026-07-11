@@ -1,3 +1,6 @@
+import sys
+import cv2
+
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -5,10 +8,13 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QHBoxLayout,
-    QTextEdit
+    QTextEdit,
 )
 
-import sys
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QImage, QPixmap
+
+from camera import Camera
 
 
 class Dashboard(QWidget):
@@ -16,39 +22,52 @@ class Dashboard(QWidget):
         super().__init__()
 
         self.setWindowTitle("OmniGuardian Lite - PrivacyLens")
-        self.setGeometry(200, 100, 900, 600)
+        self.setGeometry(200, 100, 1000, 700)
 
-        # Title
+        # Camera Object
+        self.camera_device = Camera()
+
+        # Timer
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_frame)
+
+        # ---------------- Title ----------------
         title = QLabel("OmniGuardian Lite")
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("""
+            font-size:24px;
+            font-weight:bold;
+        """)
 
-        # Camera placeholder
+        # ---------------- Camera ----------------
         self.camera = QLabel("Camera Preview")
-        self.camera.setMinimumHeight(300)
-        self.camera.setStyleSheet(
-            "border: 2px solid black;"
-            "font-size: 20px;"
-            "qproperty-alignment: AlignCenter;"
-        )
+        self.camera.setMinimumSize(700, 450)
+        self.camera.setAlignment(Qt.AlignCenter)
+        self.camera.setStyleSheet("""
+            border:2px solid black;
+            background:#EEEEEE;
+        """)
 
-        # Buttons
-        start_btn = QPushButton("Start Camera")
-        stop_btn = QPushButton("Stop Camera")
+        # ---------------- Buttons ----------------
+        self.start_btn = QPushButton("Start Camera")
+        self.stop_btn = QPushButton("Stop Camera")
 
-        # Status
-        self.status = QLabel("Status: System Ready")
+        self.start_btn.clicked.connect(self.start_camera)
+        self.stop_btn.clicked.connect(self.stop_camera)
 
-        # Logs
-        self.logs = QTextEdit()
-        self.logs.setPlaceholderText("Detection logs appear here...")
-        self.logs.setReadOnly(True)
-
-        # Button layout
         button_layout = QHBoxLayout()
-        button_layout.addWidget(start_btn)
-        button_layout.addWidget(stop_btn)
+        button_layout.addWidget(self.start_btn)
+        button_layout.addWidget(self.stop_btn)
 
-        # Main layout
+        # ---------------- Status ----------------
+        self.status = QLabel("Status : Camera Stopped")
+
+        # ---------------- Logs ----------------
+        self.logs = QTextEdit()
+        self.logs.setReadOnly(True)
+        self.logs.setPlaceholderText("Detection logs appear here...")
+
+        # ---------------- Layout ----------------
         layout = QVBoxLayout()
 
         layout.addWidget(title)
@@ -59,10 +78,80 @@ class Dashboard(QWidget):
 
         self.setLayout(layout)
 
+    # ---------------- Start Camera ----------------
+
+    def start_camera(self):
+
+        self.camera_device.start()
+
+        self.timer.start(30)
+
+        self.status.setText("Status : Camera Running")
+
+        self.logs.append("Camera Started")
+
+    # ---------------- Stop Camera ----------------
+
+    def stop_camera(self):
+
+        self.timer.stop()
+
+        self.camera_device.stop()
+
+        self.camera.clear()
+
+        self.camera.setText("Camera Preview")
+
+        self.status.setText("Status : Camera Stopped")
+
+        self.logs.append("Camera Stopped")
+
+    # ---------------- Update Frame ----------------
+
+    def update_frame(self):
+
+        frame = self.camera_device.get_frame()
+
+        if frame is None:
+            return
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        h, w, ch = frame.shape
+
+        bytes_per_line = ch * w
+
+        image = QImage(
+            frame.data,
+            w,
+            h,
+            bytes_per_line,
+            QImage.Format_RGB888
+        )
+
+        pixmap = QPixmap.fromImage(image)
+
+        self.camera.setPixmap(
+            pixmap.scaled(
+                self.camera.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+        )
+
+    # ---------------- Close Window ----------------
+
+    def closeEvent(self, event):
+
+        self.stop_camera()
+
+        event.accept()
+
 
 app = QApplication(sys.argv)
 
 window = Dashboard()
+
 window.show()
 
 sys.exit(app.exec())
