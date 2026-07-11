@@ -9,14 +9,17 @@ class YOLODetector:
 
         # Objects to blur
         self.sensitive_objects = SENSITIVE_OBJECTS
-
-    def detect_and_blur(self, frame):
-        results = self.model(frame, verbose=False)
+    
+    def detect(self, frame):
+        return self.model(frame, verbose=False)
+    
+    def blur_objects(self, frame, results):
 
         for result in results:
             boxes = result.boxes
 
             for box in boxes:
+
                 confidence = float(box.conf[0])
 
                 if confidence < self.conf:
@@ -27,7 +30,6 @@ class YOLODetector:
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                # Keep coordinates inside frame
                 h, w = frame.shape[:2]
                 x1 = max(0, x1)
                 y1 = max(0, y1)
@@ -42,13 +44,40 @@ class YOLODetector:
                         blur = cv2.GaussianBlur(roi, (51, 51), 30)
                         frame[y1:y2, x1:x2] = blur
 
-                    color = (0, 0, 255)      # Red = blurred object
+        return frame
+    
+    def draw(self, frame, results):
+
+        for result in results:
+            boxes = result.boxes
+
+            for box in boxes:
+
+                confidence = float(box.conf[0])
+
+                if confidence < self.conf:
+                    continue
+
+                cls_id = int(box.cls[0])
+                label = self.model.names[cls_id]
+
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                h, w = frame.shape[:2]
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(w, x2)
+                y2 = min(h, y2)
+
+                if label in self.sensitive_objects:
+                    color = (0, 0, 255)      # Red
                 else:
-                    color = (0, 255, 0)      # Green = normal object
+                    color = (0, 255, 0)      # Green
 
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
                 text = f"{label} {confidence:.2f}"
+
                 cv2.putText(
                     frame,
                     text,

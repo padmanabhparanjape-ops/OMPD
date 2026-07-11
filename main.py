@@ -3,7 +3,7 @@ import cv2
 from vision.camera import Camera
 from vision.yolo_detector import YOLODetector
 from vision.face_detector import FaceDetector
-
+from vision.text_detector import TextDetector
 
 camera = Camera()
 
@@ -11,19 +11,32 @@ detector = YOLODetector()
 
 face_detector = FaceDetector()
 
+text_detector = TextDetector()
+
+frame_count = 0
+ocr_results = []
+
 while True:
 
     success, frame = camera.read()
 
     if not success:
         break
+    frame_count += 1
 
-    frame = detector.detect_and_blur(frame)
+    detections = detector.detect(frame)
+
+    frame = detector.blur_objects(frame, detections)
 
     faces = face_detector.detect(frame)
-
     frame = face_detector.blur_faces(frame, faces)
 
+    if frame_count % 15 == 0:
+        ocr_results = text_detector.detect(frame)
+
+    frame = text_detector.blur_text(frame, ocr_results)
+
+    frame = detector.draw(frame, detections)
     frame = face_detector.draw(frame, faces)
 
     cv2.imshow(
