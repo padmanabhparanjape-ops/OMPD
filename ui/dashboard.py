@@ -18,20 +18,22 @@ from camera import Camera
 
 
 class Dashboard(QWidget):
+
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("OmniGuardian Lite - PrivacyLens")
         self.setGeometry(200, 100, 1000, 700)
 
-        # Camera Object
+        # ---------------- Camera ----------------
+
         self.camera_device = Camera()
 
-        # Timer
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
 
         # ---------------- Title ----------------
+
         title = QLabel("OmniGuardian Lite")
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("""
@@ -39,7 +41,8 @@ class Dashboard(QWidget):
             font-weight:bold;
         """)
 
-        # ---------------- Camera ----------------
+        # ---------------- Camera Preview ----------------
+
         self.camera = QLabel("Camera Preview")
         self.camera.setMinimumSize(700, 450)
         self.camera.setAlignment(Qt.AlignCenter)
@@ -49,8 +52,10 @@ class Dashboard(QWidget):
         """)
 
         # ---------------- Buttons ----------------
+
         self.start_btn = QPushButton("Start Camera")
         self.stop_btn = QPushButton("Stop Camera")
+        self.scan_btn = QPushButton("Scan Text")
 
         self.start_btn.clicked.connect(self.start_camera)
         self.stop_btn.clicked.connect(self.stop_camera)
@@ -58,22 +63,40 @@ class Dashboard(QWidget):
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.start_btn)
         button_layout.addWidget(self.stop_btn)
+        button_layout.addWidget(self.scan_btn)
 
-        # ---------------- Status ----------------
+        # ---------------- Information ----------------
+
         self.status = QLabel("Status : Camera Stopped")
+        self.privacy = QLabel("Privacy : ACTIVE")
+        self.fps = QLabel("FPS : 0")
+        self.objects = QLabel("Objects : 0")
+        self.face_blur = QLabel("Face Blur : ON")
+        self.object_blur = QLabel("Object Blur : ON")
+        self.ocr = QLabel("OCR : ON")
 
         # ---------------- Logs ----------------
+
         self.logs = QTextEdit()
         self.logs.setReadOnly(True)
         self.logs.setPlaceholderText("Detection logs appear here...")
 
         # ---------------- Layout ----------------
+
         layout = QVBoxLayout()
 
         layout.addWidget(title)
         layout.addWidget(self.camera)
         layout.addLayout(button_layout)
+
         layout.addWidget(self.status)
+        layout.addWidget(self.privacy)
+        layout.addWidget(self.fps)
+        layout.addWidget(self.objects)
+        layout.addWidget(self.face_blur)
+        layout.addWidget(self.object_blur)
+        layout.addWidget(self.ocr)
+
         layout.addWidget(self.logs)
 
         self.setLayout(layout)
@@ -106,7 +129,7 @@ class Dashboard(QWidget):
 
         self.logs.append("Camera Stopped")
 
-    # ---------------- Update Frame ----------------
+    # ---------------- Update Camera ----------------
 
     def update_frame(self):
 
