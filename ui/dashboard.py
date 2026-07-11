@@ -14,7 +14,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 
-from camera import Camera
+from vision.camera import Camera
+from vision.yolo_detector import YOLODetector
+from vision.face_detector import FaceDetector
 
 
 class Dashboard(QWidget):
@@ -28,6 +30,8 @@ class Dashboard(QWidget):
         # ---------------- Camera ----------------
 
         self.camera_device = Camera()
+        self.yolo = YOLODetector()
+        self.face_detector = FaceDetector()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
@@ -137,6 +141,11 @@ class Dashboard(QWidget):
 
         if frame is None:
             return
+        results = self.yolo.detect(frame)
+        frame = self.yolo.blur_objects(frame, results)
+
+        faces = self.face_detector.detect(frame)
+        frame = self.face_detector.blur_faces(frame, faces)    
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
