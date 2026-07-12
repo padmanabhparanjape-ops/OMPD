@@ -43,7 +43,7 @@ class FaceDetector:
                         y + height
                     )
                 })
-
+        print("Face detections:", len(detections))
         return detections
 
     def draw(self, frame, detections):

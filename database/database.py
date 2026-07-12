@@ -62,5 +62,20 @@ class Database:
 
         self.connection.commit()
 
+    def get_recent_logs(self, limit=10):
+
+        self.cursor.execute(
+            """
+            SELECT timestamp, event_type, label, confidence
+            FROM detections
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,)
+        )
+
+        return self.cursor.fetchall()
+
     def close(self):
+
         self.connection.close()

@@ -45,8 +45,9 @@ class TextDetector:
         for result in results:
 
             bbox, text, confidence = result
+           
             if not self.is_sensitive(text):
-                continue
+               continue
 
             x_coords = [int(point[0]) for point in bbox]
             y_coords = [int(point[1]) for point in bbox]
@@ -57,6 +58,7 @@ class TextDetector:
             y2 = min(frame.shape[0], max(y_coords))
 
             roi = frame[y1:y2, x1:x2]
+           
 
             if roi.size != 0:
                 roi = cv2.GaussianBlur(roi, (51, 51), 0)
