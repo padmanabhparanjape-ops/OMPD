@@ -448,7 +448,7 @@ def build_right_panel(self):
 
         group_layout.addWidget(cb)
 
-    self.scan_button = QPushButton("🔍 Privacy Scan")
+    self.scan_button = QPushButton("🔍Scan Current Text")
     self.scan_button.clicked.connect(self.scan_text)
 
     privacy_layout.addWidget(privacy_group)

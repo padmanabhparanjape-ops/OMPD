@@ -273,7 +273,7 @@ class Dashboard(QWidget):
                 )
 
         self.current_frame = frame.copy()
-                # -----------------------------------------
+        # -----------------------------------------
         # PRIVACY SCORE
         # -----------------------------------------
 
@@ -464,80 +464,132 @@ Time : {timestamp}
 
     def scan_text(self):
 
-        if self.current_frame is None:
-
-            self.logs.append(
-                "No frame available for Privacy Scan."
-            )
-            return
-
-        frame = self.current_frame.copy()
+        self.scan_button.setEnabled(False)
 
         try:
 
-            results = self.text_detector.detect(frame)
+            camera_started_here = False
+
+            # --------------------------------------------------
+            # If live camera is OFF, start it temporarily
+            # --------------------------------------------------
+
+            if self.camera_device.cap is None:
+
+                self.camera_device.start()
+                camera_started_here = True
+
+            frame = self.camera_device.get_frame()
+
+            if frame is None:
+
+                self.logs.append(
+                    "Unable to capture image."
+                )
+                return
+
+            frame = frame.copy()
+
+            # --------------------------------------------------
+            # OCR Detection
+            # --------------------------------------------------
+
+            try:
+
+                results = self.text_detector.detect(frame)
+
+            except Exception as e:
+
+                self.logs.append(
+                    f"OCR Error : {e}"
+                )
+                return
+
+            # --------------------------------------------------
+            # Blur Sensitive Text
+            # --------------------------------------------------
+
+            try:
+
+                frame = self.text_detector.blur_text(
+                    frame,
+                    results,
+                    self.blur_strength
+                )
+
+            except TypeError:
+
+                frame = self.text_detector.blur_text(
+                    frame,
+                    results
+                )
+
+            # --------------------------------------------------
+            # Update Counter
+            # --------------------------------------------------
+
+            self.text_value.setText(
+                str(len(results))
+            )
+
+            # --------------------------------------------------
+            # Display Snapshot
+            # --------------------------------------------------
+
+            rgb = cv2.cvtColor(
+                frame,
+                cv2.COLOR_BGR2RGB
+            )
+
+            h, w, ch = rgb.shape
+
+            image = QImage(
+                rgb.data,
+                w,
+                h,
+                ch * w,
+                QImage.Format_RGB888
+            )
+
+            pixmap = QPixmap.fromImage(image)
+
+            self.camera.setPixmap(
+                pixmap.scaled(
+                    self.camera.size(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+            )
+
+            # --------------------------------------------------
+            # Logs
+            # --------------------------------------------------
+
+            self.logs.append(
+                f"📸 Privacy Scan Completed ({len(results)} sensitive text found)"
+            )
+
+            self.status.setText(
+                "Privacy Scan Complete"
+            )
+
+            # --------------------------------------------------
+            # If we opened the camera, close it again
+            # --------------------------------------------------
+
+            if camera_started_here:
+
+                self.camera_device.stop()
 
         except Exception as e:
 
             self.logs.append(
-                f"OCR Error : {e}"
-            )
-            return
-
-        try:
-
-            frame = self.text_detector.blur_text(
-                frame,
-                results,
-                self.blur_strength
+                f"Privacy Scan Error : {e}"
             )
 
-        except TypeError:
+        finally:
 
-            frame = self.text_detector.blur_text(
-                frame,
-                results
-            )
-
-        self.text_value.setText(str(len(results)))
-
-        rgb = cv2.cvtColor(
-            frame,
-            cv2.COLOR_BGR2RGB
-        )
-
-        h, w, ch = rgb.shape
-
-        image = QImage(
-            rgb.data,
-            w,
-            h,
-            ch * w,
-            QImage.Format_RGB888
-        )
-
-        pixmap = QPixmap.fromImage(image)
-
-        self.camera.setPixmap(
-
-            pixmap.scaled(
-
-                self.camera.size(),
-
-                Qt.KeepAspectRatio,
-
-                Qt.SmoothTransformation
-
-            )
-        )
-
-        self.logs.append(
-            "Privacy Scan Completed"
-        )
-
-        self.status.setText(
-            "Privacy Scan Complete"
-        )
+            self.scan_button.setEnabled(True)
 
     # ======================================================
     # FACE BLUR
