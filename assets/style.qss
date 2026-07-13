@@ -1,0 +1,513 @@
+/* ==========================================================
+   OMPD - PrivacyLens
+   Professional Dark Theme
+   ========================================================== */
+
+*{
+    font-family: "Segoe UI";
+    font-size: 10pt;
+    color:#ECEFF4;
+}
+
+/* ==========================================================
+   Main Window
+   ========================================================== */
+
+QWidget{
+    background:#111827;
+    color:#ECEFF4;
+}
+
+/* ==========================================================
+   Cards
+   ========================================================== */
+
+QFrame{
+    background:#1E293B;
+    border:1px solid #2F3B52;
+    border-radius:18px;
+}
+
+QFrame:hover{
+    border:1px solid #3B82F6;
+}
+
+/* ==========================================================
+   Labels
+   ========================================================== */
+
+QLabel{
+
+    background:transparent;
+    color:#F8FAFC;
+}
+
+QLabel#Title{
+    font-size:20px;
+    font-weight:700;
+}
+
+QLabel#Subtitle{
+    color:#94A3B8;
+    font-size:10pt;
+}
+
+QLabel#Status{
+
+    font-weight:bold;
+    color:#10B981;
+}
+
+/* ==========================================================
+   Camera Preview
+   ========================================================== */
+
+QLabel#Camera{
+
+    background:black;
+
+    border-radius:16px;
+
+    border:2px solid #334155;
+}
+
+/* ==========================================================
+   Push Buttons
+   ========================================================== */
+
+QPushButton{
+
+    background:#2563EB;
+
+    border:none;
+
+    border-radius:10px;
+
+    min-height:38px;
+
+    padding-left:18px;
+
+    padding-right:18px;
+
+    font-weight:600;
+}
+
+QPushButton:hover{
+
+    background:#3B82F6;
+}
+
+QPushButton:pressed{
+
+    background:#1D4ED8;
+}
+
+QPushButton:disabled{
+
+    background:#374151;
+
+    color:#94A3B8;
+}
+
+/* ==========================================================
+   Secondary Buttons
+   ========================================================== */
+
+QPushButton#Secondary{
+
+    background:#334155;
+}
+
+QPushButton#Secondary:hover{
+
+    background:#475569;
+}
+
+/* ==========================================================
+   Danger
+   ========================================================== */
+
+QPushButton#Danger{
+
+    background:#DC2626;
+}
+
+QPushButton#Danger:hover{
+
+    background:#EF4444;
+}
+
+/* ==========================================================
+   Success
+   ========================================================== */
+
+QPushButton#Success{
+
+    background:#059669;
+}
+
+QPushButton#Success:hover{
+
+    background:#10B981;
+}
+
+/* ==========================================================
+   Sliders
+   ========================================================== */
+
+QSlider::groove:horizontal{
+
+    height:7px;
+
+    background:#334155;
+
+    border-radius:4px;
+}
+
+QSlider::sub-page:horizontal{
+
+    background:#2563EB;
+
+    border-radius:4px;
+}
+
+QSlider::handle:horizontal{
+
+    width:18px;
+
+    background:white;
+
+    margin:-6px 0;
+
+    border-radius:9px;
+}
+
+QSlider::handle:horizontal:hover{
+
+    background:#60A5FA;
+}
+
+/* ==========================================================
+   Scrollbars
+   ========================================================== */
+
+QScrollBar:vertical{
+
+    background:#111827;
+
+    width:10px;
+
+    border:none;
+}
+
+QScrollBar::handle:vertical{
+
+    background:#475569;
+
+    border-radius:5px;
+}
+
+QScrollBar::handle:vertical:hover{
+
+    background:#64748B;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical{
+
+    height:0;
+}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical{
+
+    background:none;
+}
+
+/* ==========================================================
+   Text Edit
+   ========================================================== */
+
+QTextEdit{
+
+    background:#0F172A;
+
+    border:1px solid #334155;
+
+    border-radius:12px;
+
+    padding:10px;
+
+    selection-background-color:#2563EB;
+}
+
+/* ==========================================================
+   Check Boxes
+   ========================================================== */
+
+QCheckBox{
+
+    spacing:10px;
+
+    color:#F8FAFC;
+}
+
+QCheckBox::indicator{
+
+    width:18px;
+
+    height:18px;
+
+    border-radius:5px;
+
+    border:2px solid #64748B;
+
+    background:#1E293B;
+}
+
+QCheckBox::indicator:checked{
+
+    background:#2563EB;
+
+    border:2px solid #2563EB;
+}
+
+/* ==========================================================
+   Combo Boxes
+   ========================================================== */
+
+QComboBox{
+
+    background:#1E293B;
+
+    border:1px solid #334155;
+
+    border-radius:8px;
+
+    padding:8px;
+}
+
+QComboBox:hover{
+
+    border:1px solid #3B82F6;
+}
+
+QComboBox::drop-down{
+
+    border:none;
+
+    width:25px;
+}
+
+/* ==========================================================
+   Line Edit
+   ========================================================== */
+
+QLineEdit{
+
+    background:#1E293B;
+
+    border:1px solid #334155;
+
+    border-radius:10px;
+
+    padding:8px;
+}
+
+QLineEdit:focus{
+
+    border:1px solid #3B82F6;
+}
+
+/* ==========================================================
+   Progress Bar
+   ========================================================== */
+
+QProgressBar{
+
+    background:#1E293B;
+
+    border-radius:8px;
+
+    text-align:center;
+
+    border:none;
+}
+
+QProgressBar::chunk{
+
+    background:#2563EB;
+
+    border-radius:8px;
+}
+
+/* ==========================================================
+   Tabs
+   ========================================================== */
+
+QTabWidget::pane{
+
+    border:none;
+}
+
+QTabBar::tab{
+
+    background:#1E293B;
+
+    padding:10px 18px;
+
+    border-radius:8px;
+
+    margin:4px;
+}
+
+QTabBar::tab:selected{
+
+    background:#2563EB;
+}
+
+/* ==========================================================
+   GroupBox
+   ========================================================== */
+
+QGroupBox{
+
+    border:1px solid #334155;
+
+    border-radius:14px;
+
+    margin-top:12px;
+
+    font-weight:bold;
+}
+
+QGroupBox::title{
+
+    subcontrol-origin:margin;
+
+    left:12px;
+
+    padding:0 5px;
+}
+
+/* ==========================================================
+   Tooltips
+   ========================================================== */
+
+QToolTip{
+
+    background:#111827;
+
+    border:1px solid #3B82F6;
+
+    color:white;
+
+    padding:6px;
+}
+
+/* ==========================================================
+   Menu
+   ========================================================== */
+
+QMenu{
+
+    background:#1E293B;
+
+    border:1px solid #334155;
+}
+
+QMenu::item{
+
+    padding:8px 20px;
+}
+
+QMenu::item:selected{
+
+    background:#2563EB;
+}
+
+/* ==========================================================
+   Status Colors
+   ========================================================== */
+
+#Good{
+
+    color:#10B981;
+}
+
+#Warning{
+
+    color:#F59E0B;
+}
+
+#Danger{
+
+    color:#EF4444;
+}
+
+/* ==========================================================
+   Statistics Cards
+   ========================================================== */
+
+#StatCard{
+
+    background:#172554;
+
+    border-radius:16px;
+
+    border:1px solid #2563EB;
+}
+
+#StatValue{
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:white;
+}
+
+#StatTitle{
+
+    color:#CBD5E1;
+}
+
+/* ==========================================================
+   Activity Panel
+   ========================================================== */
+
+#ActivityCard{
+
+    background:#0F172A;
+
+    border-radius:14px;
+
+    border:1px solid #334155;
+}
+
+#ActivityTitle{
+
+    font-size:12pt;
+
+    font-weight:bold;
+}
+
+#Timestamp{
+
+    color:#94A3B8;
+}
+
+#SeverityHigh{
+
+    color:#EF4444;
+}
+
+#SeverityMedium{
+
+    color:#F59E0B;
+}
+
+#SeverityLow{
+
+    color:#10B981;
+}
