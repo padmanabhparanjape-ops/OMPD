@@ -16,6 +16,9 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView
 )
 
 
@@ -84,6 +87,7 @@ def build_sidebar(self):
     self.dashboard_btn = QPushButton("🏠 Dashboard")
     self.scan_btn = QPushButton("🔍 Privacy Scan")
     self.activity_btn = QPushButton("📋 Activity Center")
+    self.history_btn = QPushButton("📜 History")
     self.analytics_btn = QPushButton("📈 Analytics")
     self.settings_btn = QPushButton("⚙ Settings")
     self.about_btn = QPushButton("ℹ About")
@@ -92,6 +96,7 @@ def build_sidebar(self):
         self.dashboard_btn,
         self.scan_btn,
         self.activity_btn,
+        self.history_btn,
         self.analytics_btn,
         self.settings_btn,
     ]
@@ -127,6 +132,11 @@ def build_sidebar(self):
             self.activity_page
         )
     )
+    self.history_btn.clicked.connect(
+        lambda: self.stack.setCurrentWidget(
+            self.history_page
+        )
+    )
 
     self.analytics_btn.clicked.connect(
         lambda: self.stack.setCurrentWidget(
@@ -155,7 +165,9 @@ def build_pages(self):
     self.home_page = QWidget()
     build_home_page(self)
     self.scan_page = QWidget()
+    build_scan_page(self)
     self.activity_page = QWidget()
+    self.history_page = QWidget()
     self.analytics_page = QWidget()
     self.settings_page = QWidget()
     self.about_page = QWidget()
@@ -163,6 +175,7 @@ def build_pages(self):
     self.stack.addWidget(self.home_page)
     self.stack.addWidget(self.scan_page)
     self.stack.addWidget(self.activity_page)
+    self.stack.addWidget(self.history_page)
     self.stack.addWidget(self.analytics_page)
     self.stack.addWidget(self.settings_page)
     self.stack.addWidget(self.about_page)
@@ -295,6 +308,288 @@ def build_home_page(self):
 
     home_layout.setStretch(0, 4)
     home_layout.setStretch(1, 2)
+
+def build_scan_page(self):
+
+    scan_layout = QVBoxLayout(self.scan_page)
+
+    scan_layout.setContentsMargins(20, 20, 20, 20)
+    scan_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header_frame = QFrame()
+    header_frame.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header_frame)
+    header_layout.setContentsMargins(15, 10, 15, 10)
+
+    header_label = QLabel(
+        "🔍 Privacy Scan   <span style='font-size:15px;color:#8A8F98;'>:: Analyze an image before sharing</span>"
+    )
+
+    header_label.setObjectName("Title")
+    header_label.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(header_label)
+
+    header_layout.addStretch()
+
+    self.scan_health = QLabel("Privacy Health : SAFE")
+    self.scan_health.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.scan_health)
+
+    scan_layout.addWidget(header_frame)
+
+    # =====================================================
+    # BODY
+    # =====================================================
+
+    body = QHBoxLayout()
+    body.setSpacing(5)
+    body.setStretch(0, 7)
+    body.setStretch(1, 2)
+
+    # =====================================================
+    # LEFT PANEL
+    # =====================================================
+
+    left = QFrame()
+    left.setObjectName("Card")
+
+    left_layout = QVBoxLayout(left)
+    left_layout.setContentsMargins(10, 10, 10, 10)
+    left_layout.setSpacing(10)
+
+    preview_title = QLabel("🛡 Protected Snapshot")
+    preview_title.setObjectName("CardTitle")
+
+    self.scan_preview = QLabel()
+    self.scan_preview.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
+
+    self.scan_preview.setObjectName("CameraPreview")
+
+    self.scan_preview.setMinimumSize(900, 700)
+
+    self.scan_preview.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
+
+    self.scan_preview.setAlignment(
+        Qt.AlignCenter
+    )
+
+    self.scan_preview.setText(
+        "No image captured.\n\nPress 'Capture & Scan'."
+    )
+
+    left_layout.addWidget(preview_title)
+    left_layout.addWidget(self.scan_preview)
+
+    body.addWidget(left, 7)
+
+    # =====================================================
+    # RIGHT PANEL
+    # =====================================================
+
+    right = QWidget()
+
+    right.setMaximumWidth(320)
+
+    right_layout = QVBoxLayout(right)
+
+    health_title = QLabel("Privacy Analysis")
+    health_title.setObjectName("CardTitle")
+
+    right_layout.addWidget(health_title)
+
+    right_layout.addSpacing(12)
+
+    # =====================================================
+    # ACTION BUTTONS
+    # =====================================================
+    
+    self.scan_text_button = QPushButton(
+        "📄 Scan Text"
+    )
+
+    self.upload_button = QPushButton(
+        "🖼 Upload Image"
+    )
+
+    self.save_button = QPushButton(
+        "💾 Save Safe Image"
+    )
+
+    self.report_button = QPushButton(
+        "📋 Export Report"
+    )
+
+    buttons = QVBoxLayout()
+
+    buttons.setContentsMargins(8, 0, 8, 0)
+    buttons.setSpacing(18)
+
+    for btn in (
+        self.scan_text_button,
+        self.upload_button,
+        self.save_button,
+        self.report_button
+    ):
+        btn.setFixedHeight(48)
+        btn.setMinimumWidth(220)
+        btn.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Fixed
+        )
+
+        buttons.addWidget(btn)
+
+    right_layout.addLayout(buttons)
+
+    right_layout.addSpacing(18)
+
+    # =====================================================
+    # PRIVACY HEALTH
+    # =====================================================
+
+    self.scan_score = QLabel("Privacy Score : 100")
+    self.scan_score.setObjectName("StatValue")
+
+    self.scan_threat = QLabel("Threat : LOW")
+
+    right_layout.addWidget(self.scan_score)
+    right_layout.addWidget(self.scan_threat)
+
+    right_layout.addSpacing(15)
+
+    self.scan_faces = QLabel("👤 Faces : 0")
+    self.scan_objects = QLabel("📦 Objects : 0")
+    self.scan_sensitive = QLabel("📄 Sensitive : 0")
+    self.scan_time = QLabel("🕒 Last Scan : --")
+
+    stats_card = QFrame()
+    stats_card.setObjectName("Card")
+
+    stats = QGridLayout(stats_card)
+
+    stats.setContentsMargins(12,12,12,12)
+    stats.setHorizontalSpacing(18)
+    stats.setVerticalSpacing(12)
+
+    stats.addWidget(self.scan_faces,0,0)
+    stats.addWidget(self.scan_objects,0,1)
+
+    stats.addWidget(self.scan_sensitive,1,0)
+    stats.addWidget(self.scan_time,1,1)
+
+    right_layout.addWidget(stats_card)
+
+    right_layout.addSpacing(20)
+
+    # =====================================================
+    # AI RECOMMENDATION
+    # =====================================================
+
+    recommendation = QFrame()
+    recommendation.setObjectName("Card")
+
+    recommendation_layout = QVBoxLayout(recommendation)
+
+    recommendation_title = QLabel("🧠 AI Recommendation")
+    recommendation_title.setObjectName("CardTitle")
+
+    self.scan_recommendation = QTextEdit()
+
+    self.scan_recommendation.setReadOnly(True)
+
+    self.scan_recommendation.setFixedHeight(120)
+
+    self.scan_recommendation.setText(
+        "Capture or upload an image to begin the privacy analysis."
+    )
+
+    recommendation_layout.addWidget(
+        recommendation_title
+    )
+
+    recommendation_layout.addWidget(
+        self.scan_recommendation
+    )
+
+    right_layout.addWidget(recommendation)
+
+    right_layout.addStretch()
+
+    body.addWidget(right, 2)
+
+    scan_layout.addLayout(body,1)
+    # =====================================================
+    # OCR RESULTS
+    # =====================================================
+
+    results_card = QFrame()
+    results_card.setObjectName("Card")
+
+    results_layout = QVBoxLayout(results_card)
+
+    results_title = QLabel("Detected Privacy Risks")
+    results_title.setObjectName("CardTitle")
+
+    self.scan_results = QTableWidget()
+
+    self.scan_results.setColumnCount(4)
+
+    self.scan_results.setHorizontalHeaderLabels([
+        "Category",
+        "Detected Item",
+        "Risk",
+        "Confidence"
+    ])
+
+    self.scan_results.horizontalHeader().setStretchLastSection(True)
+
+    self.scan_results.horizontalHeader().setSectionResizeMode(
+        QHeaderView.Stretch
+    )
+
+    self.scan_results.verticalHeader().setVisible(False)
+
+    self.scan_results.setAlternatingRowColors(True)
+
+    self.scan_results.setEditTriggers(
+        QTableWidget.NoEditTriggers
+    )
+
+    self.scan_results.setSelectionBehavior(
+        QTableWidget.SelectRows
+    )
+
+    self.scan_results.setMinimumHeight(150)
+    self.scan_results.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
+
+    results_layout.addWidget(results_title)
+    results_layout.addWidget(self.scan_results)
+
+    scan_layout.addWidget(results_card, 1)
+
+    # =====================================================
+    # CONNECTIONS
+    # =====================================================
+
+    self.scan_text_button.clicked.connect(
+        self.scan_text
+    )
 
 def build_right_panel(self):
 

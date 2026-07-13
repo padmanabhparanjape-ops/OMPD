@@ -23,9 +23,18 @@ QWidget{
    ========================================================== */
 
 QFrame{
+    background:transparent;
+    border:none;
+}
+
+#Card{
     background:#1E293B;
     border:1px solid #2F3B52;
     border-radius:18px;
+}
+
+#Card:hover{
+    border:1px solid #3B82F6;
 }
 
 QFrame:hover{
@@ -78,16 +87,16 @@ QLabel#Camera{
 QPushButton{
 
     background:#2563EB;
+    border:2px solid red;
 
-    border:none;
+    border-radius:12px;
 
-    border-radius:10px;
+    min-height:48px;
+    max-height:48px;
 
-    min-height:38px;
+    padding:0 18px;
 
-    padding-left:18px;
-
-    padding-right:18px;
+    margin:2px 0;
 
     font-weight:600;
 }

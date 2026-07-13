@@ -7,7 +7,8 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QWidget
+    QWidget,
+    QTableWidgetItem,
 )
 
 from vision.camera import Camera
@@ -49,6 +50,7 @@ class Dashboard(QWidget):
         # Runtime State
         # ===============================
         self.current_frame = None
+        self.last_scan = None
         self.object_blur_enabled = True
         self.ocr_enabled = True
 
@@ -462,6 +464,35 @@ Time : {timestamp}
     # PRIVACY SCAN
     # ======================================================
 
+    def show_scan_preview(self, frame):
+
+        self.last_scan = frame.copy()
+
+        rgb = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2RGB
+        )
+
+        h, w, ch = rgb.shape
+
+        image = QImage(
+            rgb.data,
+            w,
+            h,
+            ch * w,
+            QImage.Format_RGB888
+        )
+
+        pixmap = QPixmap.fromImage(image)
+
+        self.scan_preview.setPixmap(
+            pixmap.scaled(
+                self.scan_preview.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+        )
+
     def scan_text(self):
 
         self.scan_button.setEnabled(False)
@@ -498,6 +529,40 @@ Time : {timestamp}
 
                 results = self.text_detector.detect(frame)
 
+                self.scan_results.setRowCount(0)
+
+                for bbox, text, confidence in results:
+
+                    row = self.scan_results.rowCount()
+
+                    self.scan_results.insertRow(row)
+
+                    self.scan_results.setItem(
+                        row,
+                        0,
+                        QTableWidgetItem("Sensitive Text")
+                    )
+
+                    self.scan_results.setItem(
+                        row,
+                        1,
+                        QTableWidgetItem(text)
+                    )
+
+                    self.scan_results.setItem(
+                        row,
+                        2,
+                        QTableWidgetItem("HIGH")
+                    )
+
+                    self.scan_results.setItem(
+                        row,
+                        3,
+                        QTableWidgetItem(
+                            f"{confidence*100:.1f}%"
+                        )
+                    )
+
             except Exception as e:
 
                 self.logs.append(
@@ -531,34 +596,66 @@ Time : {timestamp}
             self.text_value.setText(
                 str(len(results))
             )
-
-            # --------------------------------------------------
-            # Display Snapshot
-            # --------------------------------------------------
-
-            rgb = cv2.cvtColor(
-                frame,
-                cv2.COLOR_BGR2RGB
+            score = max(
+                0,
+                100 - len(results) * 10
             )
 
-            h, w, ch = rgb.shape
-
-            image = QImage(
-                rgb.data,
-                w,
-                h,
-                ch * w,
-                QImage.Format_RGB888
+            self.scan_score.setText(
+                f"Privacy Score : {score}"
             )
 
-            pixmap = QPixmap.fromImage(image)
+            if score >= 85:
 
-            self.camera.setPixmap(
-                pixmap.scaled(
-                    self.camera.size(),
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
+                threat = "LOW"
+
+            elif score >= 60:
+
+                threat = "MEDIUM"
+
+            else:
+
+                threat = "HIGH"
+
+            self.scan_threat.setText(
+                f"Threat : {threat}"
+            )
+
+            self.scan_sensitive.setText(
+                f"Sensitive Text : {len(results)}"
+            )
+
+            self.scan_time.setText(
+                time.strftime(
+                    "Last Scan : %H:%M:%S"
                 )
+            )
+
+            self.show_scan_preview(frame)
+
+            if len(results) == 0:
+
+                recommendation = (
+                    "No sensitive text detected.\n\n"
+                    "This image appears safe."
+                )
+
+            elif len(results) <= 2:
+
+                recommendation = (
+                    "Small amount of sensitive text detected.\n\n"
+                    "Review before sharing."
+                )
+
+            else:
+
+                recommendation = (
+                    "Multiple sensitive texts detected.\n\n"
+                    "Blur before sharing."
+                )
+
+            self.scan_recommendation.setText(
+                recommendation
             )
 
             # --------------------------------------------------
@@ -590,6 +687,326 @@ Time : {timestamp}
         finally:
 
             self.scan_button.setEnabled(True)
+
+    def capture_and_protect(self):
+
+        self.capture_button.setEnabled(False)
+
+        try:
+
+            camera_started_here = False
+
+            # ------------------------------------------
+            # Ensure camera is available
+            # ------------------------------------------
+
+            if self.camera_device.cap is None:
+
+                self.camera_device.start()
+                camera_started_here = True
+
+            frame = self.camera_device.get_frame()
+
+            if frame is None:
+
+                self.logs.append(
+                    "Unable to capture image."
+                )
+                return
+
+            frame = frame.copy()
+
+            # ------------------------------------------
+            # FACE DETECTION
+            # ------------------------------------------
+
+            faces = self.face_detector.detect(frame)
+
+            frame = self.face_detector.blur_faces(
+                frame,
+                faces,
+                self.blur_strength
+            )
+
+            # ------------------------------------------
+            # YOLO OBJECT DETECTION
+            # ------------------------------------------
+
+            detections = self.yolo.detect(frame)
+
+            try:
+
+                frame = self.yolo.blur_objects(
+                    frame,
+                    detections,
+                    self.blur_strength
+                )
+
+            except TypeError:
+
+                frame = self.yolo.blur_objects(
+                    frame,
+                    detections
+                )
+
+            # ------------------------------------------
+            # OCR
+            # ------------------------------------------
+
+            results = self.text_detector.detect(frame)
+
+            try:
+
+                frame = self.text_detector.blur_text(
+                    frame,
+                    results,
+                    self.blur_strength
+                )
+
+            except TypeError:
+
+                frame = self.text_detector.blur_text(
+                    frame,
+                    results
+                )
+
+            # ------------------------------------------
+            # SHOW IMAGE
+            # ------------------------------------------
+
+            self.show_scan_preview(frame)
+
+            # ------------------------------------------
+            # UPDATE PRIVACY RISKS TABLE
+            # ------------------------------------------
+
+            self.scan_results.setRowCount(0)
+
+            # ---------- Faces ----------
+
+            for _ in faces:
+
+                row = self.scan_results.rowCount()
+                self.scan_results.insertRow(row)
+
+                self.scan_results.setItem(
+                    row,
+                    0,
+                    QTableWidgetItem("👤 Face")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    1,
+                    QTableWidgetItem("Human Face")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    2,
+                    QTableWidgetItem("HIGH")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    3,
+                    QTableWidgetItem("100%")
+                )
+
+            # ---------- Objects ----------
+
+            for obj in detections:
+
+                label = obj.get("label", "Unknown")
+                confidence = obj.get("confidence", 0)
+
+                risk = "LOW"
+
+                if label in self.yolo.sensitive_objects:
+
+                    if self.yolo.sensitive_objects[label]:
+
+                        risk = "HIGH"
+
+                row = self.scan_results.rowCount()
+                self.scan_results.insertRow(row)
+
+                self.scan_results.setItem(
+                    row,
+                    0,
+                    QTableWidgetItem("📦 Object")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    1,
+                    QTableWidgetItem(label)
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    2,
+                    QTableWidgetItem(risk)
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    3,
+                    QTableWidgetItem(
+                        f"{confidence*100:.1f}%"
+                    )
+                )
+
+            # ---------- Sensitive Text ----------
+
+            for bbox, text, confidence in results:
+
+                row = self.scan_results.rowCount()
+                self.scan_results.insertRow(row)
+
+                self.scan_results.setItem(
+                    row,
+                    0,
+                    QTableWidgetItem("📄 Sensitive Text")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    1,
+                    QTableWidgetItem(text)
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    2,
+                    QTableWidgetItem("HIGH")
+                )
+
+                self.scan_results.setItem(
+                    row,
+                    3,
+                    QTableWidgetItem(
+                        f"{confidence*100:.1f}%"
+                    )
+                )
+
+            # ------------------------------------------
+            # UPDATE STATS
+            # ------------------------------------------
+
+            self.scan_faces.setText(
+                f"👤 Faces : {len(faces)}"
+            )
+
+            self.scan_objects.setText(
+                f"📦 Objects : {len(detections)}"
+            )
+
+            self.scan_sensitive.setText(
+                f"📄 Sensitive Text : {len(results)}"
+            )
+
+            self.scan_time.setText(
+                time.strftime(
+                    "🕒 Last Scan : %H:%M:%S"
+                )
+            )
+
+            privacy_score = 100
+
+            privacy_score -= len(faces) * 2
+            privacy_score -= len(detections) * 3
+            privacy_score -= len(results) * 5
+
+            privacy_score = max(
+                0,
+                privacy_score
+            )
+
+            self.scan_score.setText(
+                f"Privacy Score : {privacy_score}"
+            )
+
+            if privacy_score >= 85:
+
+                threat = "LOW"
+
+            elif privacy_score >= 60:
+
+                threat = "MEDIUM"
+
+            else:
+
+                threat = "HIGH"
+
+            self.scan_threat.setText(
+                f"Threat : {threat}"
+            )
+
+            # ------------------------------------------
+            # AI Recommendation
+            # ------------------------------------------
+
+            recommendation = (
+                "Privacy Analysis Report\n\n"
+
+                f"👤 Faces Detected : {len(faces)}\n"
+
+                f"📦 Sensitive Objects : {len(detections)}\n"
+
+                f"📄 Sensitive Text : {len(results)}\n\n"
+
+                f"Privacy Score : {privacy_score}\n"
+
+                f"Threat Level : {threat}\n\n"
+            )
+
+            if threat == "LOW":
+
+                recommendation += (
+                    "The image contains minimal privacy risks.\n"
+                    "Safe to share."
+                )
+
+            elif threat == "MEDIUM":
+
+                recommendation += (
+                    "Some sensitive information was detected.\n"
+                    "Review before sharing."
+                )
+
+            else:
+
+                recommendation += (
+                    "Multiple privacy risks were detected.\n"
+                    "The protected version should be shared instead of the original."
+                )
+
+            self.scan_recommendation.setText(
+                recommendation
+            )
+
+            self.status.setText(
+                "Capture & Protect Complete"
+            )
+
+            self.logs.append(
+                "Capture & Protect completed."
+            )
+
+            if camera_started_here:
+
+                self.camera_device.stop()
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Capture & Protect Error : {e}"
+            )
+
+        finally:
+
+            self.capture_button.setEnabled(True)
 
     # ======================================================
     # FACE BLUR
