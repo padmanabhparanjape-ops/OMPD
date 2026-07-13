@@ -3,23 +3,11 @@ import time
 import cv2
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QSize
-from PySide6.QtGui import QImage, QPixmap, QAction
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QWidget,
-    QLabel,
-    QPushButton,
-    QTextEdit,
-    QSlider,
-    QCheckBox,
-    QFrame,
-    QVBoxLayout,
-    QHBoxLayout,
-    QGridLayout,
-    QSizePolicy,
-    QSpacerItem,
-    QComboBox,
+    QWidget
 )
 
 from vision.camera import Camera
@@ -82,14 +70,6 @@ class Dashboard(QWidget):
         self.ocr_every_n = 15
 
         self.frame_counter = 0
-
-        self.sensitive_classes = {
-            "cell phone": True,
-            "book": True,
-            "laptop": True,
-            "keyboard": False,
-            "tv": False,
-        }
 
         # ===============================
         # Timer
@@ -280,10 +260,10 @@ class Dashboard(QWidget):
             try:
 
                 frame = self.yolo.blur_objects(
-                    frame,
-                    self._cached_yolo,
-                    self.blur_strength
-                )
+    frame,
+    detections,
+    self.blur_strength
+)
 
             except TypeError:
 
@@ -300,7 +280,7 @@ class Dashboard(QWidget):
         privacy_score = 100
 
         privacy_score -= len(self._cached_faces) * 2
-        privacy_score -= len(self._cached_yolo) * 3
+        privacy_score -= len(detections) * 3
         privacy_score -= len(self._cached_text) * 5
 
         privacy_score = max(0, privacy_score)
@@ -466,13 +446,19 @@ Time : {timestamp}
     # ======================================================
 
     def on_sensitive_class_toggled(
-        self,
-        class_name,
-        state
+    self,
+    class_name,
+    state
     ):
 
-        self.sensitive_classes[class_name] = bool(state)
-        # ======================================================
+        enabled = bool(state)
+
+        self.yolo.sensitive_objects[class_name] = enabled
+
+        self.logs.append(
+            f"{class_name}: {'Enabled' if enabled else 'Disabled'}"
+        )
+    # ======================================================
     # PRIVACY SCAN
     # ======================================================
 
@@ -618,54 +604,6 @@ Time : {timestamp}
         self.logs.append(
             f"OCR {state}"
         )
-
-    # ======================================================
-    # FILTER OBJECTS
-    # ======================================================
-
-    def _filter_results_by_enabled_classes(
-        self,
-        detections
-    ):
-
-        filtered = []
-
-        for detection in detections:
-
-            label = None
-
-            if isinstance(detection, dict):
-
-                label = detection.get(
-                    "label",
-                    ""
-                ).lower()
-
-            elif isinstance(
-                detection,
-                (list, tuple)
-            ):
-
-                for item in detection:
-
-                    if isinstance(item, str):
-
-                        label = item.lower()
-                        break
-
-            if (
-                label
-                and self.sensitive_classes.get(
-                    label,
-                    False
-                )
-            ):
-
-                filtered.append(
-                    detection
-                )
-
-        return filtered
 
     # ======================================================
     # CLOSE EVENT

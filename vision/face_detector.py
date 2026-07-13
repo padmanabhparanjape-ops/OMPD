@@ -101,6 +101,19 @@ class FaceDetector:
             if face.size == 0:
                 continue
 
+            # Ensure blur level is a valid odd number
+            blur_level = max(3, int(blur_level))
+
+            if blur_level % 2 == 0:
+                blur_level += 1
+
+            # Skip invalid face regions
+            if face.size == 0:
+                continue
+
+            if face.shape[0] < 2 or face.shape[1] < 2:
+                continue
+            
             blurred_face = cv2.GaussianBlur(
                 face,
                 (blur_level, blur_level),

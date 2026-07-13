@@ -11,7 +11,7 @@ class YOLODetector:
         self.last_logged = {}
 
         # Objects to blur
-        self.sensitive_objects = SENSITIVE_OBJECTS
+        self.sensitive_objects = SENSITIVE_OBJECTS.copy()
     
     def detect(self, frame):
         return self.model(frame, verbose=False)
@@ -19,6 +19,7 @@ class YOLODetector:
     def blur_objects(self, frame, results):
 
         for result in results:
+
             boxes = result.boxes
 
             for box in boxes:
@@ -30,6 +31,19 @@ class YOLODetector:
 
                 cls_id = int(box.cls[0])
                 label = self.model.names[cls_id]
+
+                # -----------------------------------------
+                # Ignore disabled object types
+                # -----------------------------------------
+
+                enabled = self.sensitive_objects.get(label, False)
+
+                if not enabled:
+                    continue
+
+                # -----------------------------------------
+                # Database Logging
+                # -----------------------------------------
 
                 if self.db:
 
@@ -48,21 +62,31 @@ class YOLODetector:
 
                         self.last_logged[label] = current_time
 
+                # -----------------------------------------
+                # Bounding Box
+                # -----------------------------------------
+
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 
                 h, w = frame.shape[:2]
+
                 x1 = max(0, x1)
                 y1 = max(0, y1)
                 x2 = min(w, x2)
                 y2 = min(h, y2)
 
-                if label in self.sensitive_objects:
+                roi = frame[y1:y2, x1:x2]
 
-                    roi = frame[y1:y2, x1:x2]
+                if roi.size == 0:
+                    continue
 
-                    if roi.size != 0:
-                        blur = cv2.GaussianBlur(roi, (51, 51), 30)
-                        frame[y1:y2, x1:x2] = blur
+                blur = cv2.GaussianBlur(
+                    roi,
+                    (51, 51),
+                    30
+                )
+
+                frame[y1:y2, x1:x2] = blur
 
         return frame
     
@@ -89,12 +113,20 @@ class YOLODetector:
                 x2 = min(w, x2)
                 y2 = min(h, y2)
 
-                if label in self.sensitive_objects:
-                    color = (0, 0, 255)      # Red
-                else:
-                    color = (0, 255, 0)      # Green
+                enabled = self.sensitive_objects.get(label, False)
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                if not enabled:
+                    continue
+
+                color = (0, 0, 255)
+
+                cv2.rectangle(
+                    frame,
+                    (x1, y1),
+                    (x2, y2),
+                    color,
+                    2
+                )
 
                 text = f"{label} {confidence:.2f}"
 

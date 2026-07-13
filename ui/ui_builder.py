@@ -1,6 +1,22 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import *
-from PySide6.QtWidgets import *
+
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 def build_ui(self):
@@ -171,6 +187,10 @@ def build_home_page(self):
     # -------------------------------
 
     left_widget = QWidget()
+    left_widget.setSizePolicy(
+    QSizePolicy.Expanding,
+    QSizePolicy.Expanding
+)
     left_layout = QVBoxLayout(left_widget)
     left_layout.setSpacing(15)
 
@@ -185,6 +205,10 @@ def build_home_page(self):
     top_layout.setContentsMargins(15, 10, 15, 10)
 
     title = QLabel("PrivacyLens Dashboard")
+    title.setSizePolicy(
+    QSizePolicy.Expanding,
+    QSizePolicy.Preferred
+)
     title.setObjectName("Title")
 
     self.camera_status = QLabel("● Offline")
@@ -239,6 +263,10 @@ def build_home_page(self):
     build_right_panel(self)
 
     right_widget = QWidget()
+    right_widget.setSizePolicy(
+    QSizePolicy.Preferred,
+    QSizePolicy.Expanding
+)
 
     home_right_layout = QVBoxLayout(right_widget)
 
@@ -247,6 +275,9 @@ def build_home_page(self):
     scroll = QScrollArea()
     scroll.setWidgetResizable(True)
     scroll.setFrameShape(QFrame.NoFrame)
+    scroll.setVerticalScrollBarPolicy(
+    Qt.ScrollBarAsNeeded
+)
 
     scroll.setWidget(self.right_panel)
     scroll.setHorizontalScrollBarPolicy(
@@ -270,7 +301,7 @@ def build_right_panel(self):
     self.right_panel = QFrame()
     self.right_panel.setObjectName("RightPanel")
     self.right_panel.setMinimumWidth(420)
-    self.right_panel.setMaximumWidth(460)
+    self.right_panel.setMaximumWidth(520)
 
     right_layout = QVBoxLayout(self.right_panel)
     right_layout.setContentsMargins(10, 10, 10, 10)
@@ -281,6 +312,10 @@ def build_right_panel(self):
     # =====================================================
 
     camera_card = QFrame()
+    camera_card.setSizePolicy(
+    QSizePolicy.Expanding,
+    QSizePolicy.Expanding
+)
     camera_card.setObjectName("Card")
 
     camera_layout = QVBoxLayout(camera_card)
@@ -389,18 +424,17 @@ def build_right_panel(self):
     privacy_group = QGroupBox("Sensitive Objects")
     privacy_group.setCheckable(True)
     privacy_group.setChecked(True)
+    privacy_group.setFlat(False)
 
     group_layout = QVBoxLayout(privacy_group)
 
     self.object_checkboxes = {}
 
-    for obj in self.sensitive_classes:
+    for obj in self.yolo.sensitive_objects:
 
         cb = QCheckBox(obj)
 
-        cb.setChecked(
-            self.sensitive_classes[obj]
-        )
+        cb.setChecked(self.yolo.sensitive_objects[obj])
 
         cb.stateChanged.connect(
             lambda state, name=obj:
@@ -441,6 +475,7 @@ def build_right_panel(self):
     def stat(title, value):
 
         frame = QFrame()
+        frame.setMinimumHeight(85)
         frame.setObjectName("StatCard")
 
         layout = QVBoxLayout(frame)
@@ -492,6 +527,9 @@ def build_right_panel(self):
         "Recent detections will appear here..."
     )
     self.logs.setReadOnly(True)
+    self.logs.setLineWrapMode(
+    QTextEdit.WidgetWidth
+)
 
     activity_layout.addWidget(activity_title)
     activity_layout.addWidget(self.logs)
@@ -508,12 +546,18 @@ def build_right_panel(self):
     status_layout = QHBoxLayout(status)
 
     self.status = QLabel("Ready")
-    self.session_info = QLabel("Idle")
+    self.status.setObjectName("StatusLabel")
+
+    self.session_info = QLabel("Camera: Offline")
+    self.session_info.setObjectName("StatusLabel")
+
     self.model_status = QLabel("AI Ready")
+    self.model_status.setObjectName("StatusGood")
 
     status_layout.addWidget(self.status)
     status_layout.addStretch()
     status_layout.addWidget(self.session_info)
+    status_layout.addSpacing(15)
     status_layout.addWidget(self.model_status)
 
     right_layout.addWidget(status)

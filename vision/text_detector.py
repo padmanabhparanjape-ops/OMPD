@@ -37,7 +37,7 @@ class TextDetector:
 
         return False
 
-    def blur_text(self, frame, results):
+    def blur_text(self, frame, results,blur_strength):
         """
         Blur all detected text regions.
         """
@@ -61,7 +61,12 @@ class TextDetector:
            
 
             if roi.size != 0:
-                roi = cv2.GaussianBlur(roi, (51, 51), 0)
+                blur = max(3, int(blur_strength))
+
+                if blur % 2 == 0:
+                    blur += 1
+
+                roi = cv2.GaussianBlur(roi, (blur, blur), 0)
                 frame[y1:y2, x1:x2] = roi
 
         return frame
