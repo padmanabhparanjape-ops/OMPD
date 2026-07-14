@@ -1780,10 +1780,12 @@ def build_right_panel(self):
     self.face_blur = QPushButton("Face Blur : ON")
     self.object_blur = QPushButton("Object Blur : ON")
     self.ocr = QPushButton("OCR : ON")
+    self.barcode_blur = QPushButton("Barcode Blur : ON")
 
     self.face_blur.clicked.connect(self.toggle_face_blur)
     self.object_blur.clicked.connect(self.toggle_object_blur)
     self.ocr.clicked.connect(self.toggle_ocr)
+    self.barcode_blur.clicked.connect(self.toggle_barcode_blur)
 
     self.conf_slider_label = QLabel(
         f"Confidence : {self.yolo_conf:.2f}"
@@ -1800,6 +1802,7 @@ def build_right_panel(self):
     detect_layout.addWidget(self.face_blur)
     detect_layout.addWidget(self.object_blur)
     detect_layout.addWidget(self.ocr)
+    detect_layout.addWidget(self.barcode_blur)
     detect_layout.addWidget(self.conf_slider_label)
     detect_layout.addWidget(self.conf_slider)
 
@@ -1903,6 +1906,7 @@ def build_right_panel(self):
     txt_card, self.text_value = stat("Sensitive", "0")
     privacy_stat, self.privacy_value = stat("Privacy", "100")
     threat_stat, self.threat_value = stat("Threat", "LOW")
+    barcode_card, self.barcode_value = stat("Barcodes", "0")
 
     stats_layout.addWidget(fps_card, 0, 0)
     stats_layout.addWidget(face_card, 0, 1)
@@ -1910,6 +1914,7 @@ def build_right_panel(self):
     stats_layout.addWidget(txt_card, 1, 1)
     stats_layout.addWidget(privacy_stat, 2, 0)
     stats_layout.addWidget(threat_stat, 2, 1)
+    stats_layout.addWidget(barcode_card, 3, 0)
 
     right_layout.addWidget(stats)
     right_layout.addSpacing(8)

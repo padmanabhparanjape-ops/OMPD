@@ -13,6 +13,13 @@ from PySide6.QtWidgets import (
     QFileDialog
 )
 
+ 
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QImage, QPixmap
+from vision.barcode_detector import QRBarcodeDetector
+from vision.text_detector import TextDetector
+from database.database import Database
+
 from vision.camera import Camera
 from vision.yolo_detector import YOLODetector
 from vision.face_detector import FaceDetector
@@ -40,6 +47,7 @@ class Dashboard(QWidget):
         self.db = Database()
         self.yolo = YOLODetector(db=self.db)
         self.text_detector = TextDetector()
+        self.barcode_detector = QRBarcodeDetector()
 
         try:
             self.face_detector = FaceDetector()
@@ -57,6 +65,7 @@ class Dashboard(QWidget):
         self.protected_scan_image = None
         self.object_blur_enabled = True
         self.ocr_enabled = True
+        self.barcode_enabled = True
 
         self.blur_strength = 15
         self.yolo_conf = 0.50
@@ -70,6 +79,7 @@ class Dashboard(QWidget):
         self._cached_faces = []
         self._cached_yolo = []
         self._cached_text = []
+        self._cached_barcodes = []
 
         # ---------------------------------
         # Prevent duplicate history entries
@@ -81,6 +91,7 @@ class Dashboard(QWidget):
         self.yolo_every_n = 3
         self.face_every_n = 2
         self.ocr_every_n = 15
+        self.barcode_every_n = 5
 
         self.frame_counter = 0
 
@@ -336,6 +347,28 @@ class Dashboard(QWidget):
         )
 
         # -----------------------------------------
+        # QR / BARCODE DETECTION
+        # -----------------------------------------
+
+        if self.barcode_enabled:
+
+            if self.frame_counter % self.barcode_every_n == 0:
+
+                self._cached_barcodes = (
+                    self.barcode_detector.detect(frame)
+                )
+
+            frame = self.barcode_detector.blur_codes(
+                frame,
+                self._cached_barcodes,
+                self.blur_strength
+            )
+
+        self.barcode_value.setText(
+            str(len(self._cached_barcodes))
+        )
+
+        # -----------------------------------------
         # OBJECT BLUR
         # -----------------------------------------
 
@@ -366,6 +399,7 @@ class Dashboard(QWidget):
         privacy_score -= len(self._cached_faces) * 2
         privacy_score -= len(detections) * 3
         privacy_score -= len(self._cached_text) * 5
+        privacy_score -= len(self._cached_barcodes) * 4
 
         privacy_score = max(0, privacy_score)
 
@@ -1555,6 +1589,79 @@ Time : {timestamp}
         )
 
     # ======================================================
+    # QR / BARCODE BLUR
+    # ======================================================
+
+    def toggle_barcode_blur(self):
+
+        self.barcode_enabled = (
+            not self.barcode_enabled
+        )
+
+        state = (
+            "ON"
+            if self.barcode_enabled
+            else "OFF"
+        )
+
+        self.barcode_blur.setText(
+            f"Barcode Blur : {state}"
+        )
+
+        self.logs.append(
+            f"Barcode Blur {state}"
+        )
+
+    # ======================================================
+    # FILTER OBJECTS
+    # ======================================================
+
+    def _filter_results_by_enabled_classes(
+        self,
+        detections
+    ):
+
+        filtered = []
+
+        for detection in detections:
+
+            label = None
+
+            if isinstance(detection, dict):
+
+                label = detection.get(
+                    "label",
+                    ""
+                ).lower()
+
+            elif isinstance(
+                detection,
+                (list, tuple)
+            ):
+
+                for item in detection:
+
+                    if isinstance(item, str):
+
+                        label = item.lower()
+                        break
+
+            if (
+                label
+                and self.sensitive_classes.get(
+                    label,
+                    False
+                )
+            ):
+
+                filtered.append(
+                    detection
+                )
+
+        return filtered
+
+    # ======================================================
+
     # CLOSE EVENT
     # ======================================================
 
@@ -1571,7 +1678,7 @@ Time : {timestamp}
             pass
 
         event.accept()
-
+           
 
 # ==========================================================
 # APPLICATION
