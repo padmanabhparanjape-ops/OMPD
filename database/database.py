@@ -75,6 +75,56 @@ class Database:
         )
 
         return self.cursor.fetchall()
+    
+
+    
+    def get_history(self):
+
+        self.cursor.execute(
+            """
+            SELECT
+                timestamp,
+                event_type,
+                label,
+                confidence
+            FROM detections
+            ORDER BY id DESC
+            """
+        )
+
+        return self.cursor.fetchall()
+    
+    def delete_history_record(
+        self,
+        timestamp,
+        event_type,
+        label
+    ):
+
+        self.cursor.execute(
+            """
+            DELETE FROM detections
+            WHERE
+                timestamp = ?
+                AND event_type = ?
+                AND label = ?
+            """,
+            (
+                timestamp,
+                event_type,
+                label
+            )
+        )
+
+        self.connection.commit()
+
+    def clear_history(self):
+
+        self.cursor.execute(
+            "DELETE FROM detections"
+        )
+
+        self.connection.commit()
 
     def close(self):
 

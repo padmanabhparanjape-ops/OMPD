@@ -3,520 +3,518 @@
    Professional Dark Theme
    ========================================================== */
 
-*{
+* {
     font-family: "Segoe UI";
     font-size: 10pt;
-    color:#ECEFF4;
+    color: #ECEFF4;
 }
 
 /* ==========================================================
    Main Window
    ========================================================== */
 
-QWidget{
-    background:#111827;
-    color:#ECEFF4;
+QWidget {
+    background: #111827;
+    color: #ECEFF4;
 }
 
 /* ==========================================================
    Cards
    ========================================================== */
 
-QFrame{
-    background:transparent;
-    border:none;
+QFrame {
+    background: transparent;
+    border: none;
 }
 
-#Card{
-    background:#1E293B;
-    border:1px solid #2F3B52;
-    border-radius:18px;
+#Card {
+    background: #1E293B;
+    border: 1px solid #2F3B52;
+    border-radius: 18px;
 }
 
-#Card:hover{
-    border:1px solid #3B82F6;
-}
+/* ==========================================================
+   Sidebar
+   ========================================================== */
 
-QFrame:hover{
-    border:1px solid #3B82F6;
+#Sidebar {
+    border: none;
 }
 
 /* ==========================================================
    Labels
    ========================================================== */
 
-QLabel{
+QLabel {
 
-    background:transparent;
-    color:#F8FAFC;
+    background: transparent;
+    color: #F8FAFC;
 }
 
-QLabel#Title{
-    font-size:20px;
-    font-weight:700;
+QLabel#Title {
+    font-size: 20px;
+    font-weight: 700;
 }
 
-QLabel#Subtitle{
-    color:#94A3B8;
-    font-size:10pt;
+QLabel#Subtitle {
+    color: #94A3B8;
+    font-size: 10pt;
 }
 
-QLabel#Status{
+QLabel#Status {
 
-    font-weight:bold;
-    color:#10B981;
+    font-weight: bold;
+    color: #10B981;
 }
 
 /* ==========================================================
    Camera Preview
    ========================================================== */
 
-QLabel#Camera{
+QLabel#Camera {
 
-    background:black;
+    background: black;
 
-    border-radius:16px;
+    border-radius: 16px;
 
-    border:2px solid #334155;
+    border: 2px solid #334155;
 }
 
 /* ==========================================================
    Push Buttons
    ========================================================== */
 
-QPushButton{
+QPushButton {
 
-    background:#2563EB;
-    border:2px solid red;
+    background: #2563EB;
+    border: 2px solid red;
 
-    border-radius:12px;
+    border-radius: 12px;
 
-    min-height:48px;
-    max-height:48px;
+    min-height: 48px;
+    max-height: 48px;
 
-    padding:0 18px;
+    padding: 0 18px;
 
-    margin:2px 0;
+    margin: 2px 0;
 
-    font-weight:600;
+    font-weight: 600;
 }
 
-QPushButton:hover{
+QPushButton:hover {
 
-    background:#3B82F6;
+    background: #3B82F6;
 }
 
-QPushButton:pressed{
+QPushButton:pressed {
 
-    background:#1D4ED8;
+    background: #1D4ED8;
 }
 
-QPushButton:disabled{
+QPushButton:disabled {
 
-    background:#374151;
+    background: #374151;
 
-    color:#94A3B8;
+    color: #94A3B8;
 }
 
 /* ==========================================================
    Secondary Buttons
    ========================================================== */
 
-QPushButton#Secondary{
+QPushButton#Secondary {
 
-    background:#334155;
+    background: #334155;
 }
 
-QPushButton#Secondary:hover{
+QPushButton#Secondary:hover {
 
-    background:#475569;
+    background: #475569;
 }
 
 /* ==========================================================
    Danger
    ========================================================== */
 
-QPushButton#Danger{
+QPushButton#Danger {
 
-    background:#DC2626;
+    background: #DC2626;
 }
 
-QPushButton#Danger:hover{
+QPushButton#Danger:hover {
 
-    background:#EF4444;
+    background: #EF4444;
 }
 
 /* ==========================================================
    Success
    ========================================================== */
 
-QPushButton#Success{
+QPushButton#Success {
 
-    background:#059669;
+    background: #059669;
 }
 
-QPushButton#Success:hover{
+QPushButton#Success:hover {
 
-    background:#10B981;
+    background: #10B981;
 }
 
 /* ==========================================================
    Sliders
    ========================================================== */
 
-QSlider::groove:horizontal{
+QSlider::groove:horizontal {
 
-    height:7px;
+    height: 7px;
 
-    background:#334155;
+    background: #334155;
 
-    border-radius:4px;
+    border-radius: 4px;
 }
 
-QSlider::sub-page:horizontal{
+QSlider::sub-page:horizontal {
 
-    background:#2563EB;
+    background: #2563EB;
 
-    border-radius:4px;
+    border-radius: 4px;
 }
 
-QSlider::handle:horizontal{
+QSlider::handle:horizontal {
 
-    width:18px;
+    width: 18px;
 
-    background:white;
+    background: white;
 
-    margin:-6px 0;
+    margin: -6px 0;
 
-    border-radius:9px;
+    border-radius: 9px;
 }
 
-QSlider::handle:horizontal:hover{
+QSlider::handle:horizontal:hover {
 
-    background:#60A5FA;
+    background: #60A5FA;
 }
 
 /* ==========================================================
    Scrollbars
    ========================================================== */
 
-QScrollBar:vertical{
+QScrollBar:vertical {
 
-    background:#111827;
+    background: #111827;
 
-    width:10px;
+    width: 10px;
 
-    border:none;
+    border: none;
 }
 
-QScrollBar::handle:vertical{
+QScrollBar::handle:vertical {
 
-    background:#475569;
+    background: #475569;
 
-    border-radius:5px;
+    border-radius: 5px;
 }
 
-QScrollBar::handle:vertical:hover{
+QScrollBar::handle:vertical:hover {
 
-    background:#64748B;
+    background: #64748B;
 }
 
 QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical{
+QScrollBar::sub-line:vertical {
 
-    height:0;
+    height: 0;
 }
 
 QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical{
+QScrollBar::sub-page:vertical {
 
-    background:none;
+    background: none;
 }
 
 /* ==========================================================
    Text Edit
    ========================================================== */
 
-QTextEdit{
+QTextEdit {
 
-    background:#0F172A;
+    background: #0F172A;
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 
-    border-radius:12px;
+    border-radius: 12px;
 
-    padding:10px;
+    padding: 10px;
 
-    selection-background-color:#2563EB;
+    selection-background-color: #2563EB;
 }
 
 /* ==========================================================
    Check Boxes
    ========================================================== */
 
-QCheckBox{
+QCheckBox {
 
-    spacing:10px;
-
-    color:#F8FAFC;
+    color: #F8FAFC;
 }
 
-QCheckBox::indicator{
+QCheckBox::indicator {
 
-    width:18px;
+    width: 18px;
 
-    height:18px;
+    height: 18px;
 
-    border-radius:5px;
+    margin-right: 10px;
 
-    border:2px solid #64748B;
+    border-radius: 5px;
 
-    background:#1E293B;
+    border: 2px solid #64748B;
+
+    background: #1E293B;
 }
 
-QCheckBox::indicator:checked{
+QCheckBox::indicator:checked {
 
-    background:#2563EB;
+    background: #2563EB;
 
-    border:2px solid #2563EB;
+    border: 2px solid #2563EB;
 }
 
 /* ==========================================================
    Combo Boxes
    ========================================================== */
 
-QComboBox{
+QComboBox {
 
-    background:#1E293B;
+    background: #1E293B;
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 
-    border-radius:8px;
+    border-radius: 8px;
 
-    padding:8px;
+    padding: 8px;
 }
 
-QComboBox:hover{
+QComboBox:hover {
 
-    border:1px solid #3B82F6;
+    border: 1px solid #3B82F6;
 }
 
-QComboBox::drop-down{
+QComboBox::drop-down {
 
-    border:none;
+    border: none;
 
-    width:25px;
+    width: 25px;
 }
 
 /* ==========================================================
    Line Edit
    ========================================================== */
 
-QLineEdit{
+QLineEdit {
 
-    background:#1E293B;
+    background: #1E293B;
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 
-    border-radius:10px;
+    border-radius: 10px;
 
-    padding:8px;
+    padding: 8px;
 }
 
-QLineEdit:focus{
+QLineEdit:focus {
 
-    border:1px solid #3B82F6;
+    border: 1px solid #3B82F6;
 }
 
 /* ==========================================================
    Progress Bar
    ========================================================== */
 
-QProgressBar{
+QProgressBar {
 
-    background:#1E293B;
+    background: #1E293B;
 
-    border-radius:8px;
+    border-radius: 8px;
 
-    text-align:center;
+    text-align: center;
 
-    border:none;
+    border: none;
 }
 
-QProgressBar::chunk{
+QProgressBar::chunk {
 
-    background:#2563EB;
+    background: #2563EB;
 
-    border-radius:8px;
+    border-radius: 8px;
 }
 
 /* ==========================================================
    Tabs
    ========================================================== */
 
-QTabWidget::pane{
+QTabWidget::pane {
 
-    border:none;
+    border: none;
 }
 
-QTabBar::tab{
+QTabBar::tab {
 
-    background:#1E293B;
+    background: #1E293B;
 
-    padding:10px 18px;
+    padding: 10px 18px;
 
-    border-radius:8px;
+    border-radius: 8px;
 
-    margin:4px;
+    margin: 4px;
 }
 
-QTabBar::tab:selected{
+QTabBar::tab:selected {
 
-    background:#2563EB;
+    background: #2563EB;
 }
 
 /* ==========================================================
    GroupBox
    ========================================================== */
 
-QGroupBox{
+QGroupBox {
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 
-    border-radius:14px;
+    border-radius: 14px;
 
-    margin-top:12px;
+    margin-top: 12px;
 
-    font-weight:bold;
+    font-weight: bold;
 }
 
-QGroupBox::title{
-
-    subcontrol-origin:margin;
-
-    left:12px;
-
-    padding:0 5px;
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 12px;
+    padding: 0 6px;
 }
 
 /* ==========================================================
    Tooltips
    ========================================================== */
 
-QToolTip{
+QToolTip {
 
-    background:#111827;
+    background: #111827;
 
-    border:1px solid #3B82F6;
+    border: 1px solid #3B82F6;
 
-    color:white;
+    color: white;
 
-    padding:6px;
+    padding: 6px;
 }
 
 /* ==========================================================
    Menu
    ========================================================== */
 
-QMenu{
+QMenu {
 
-    background:#1E293B;
+    background: #1E293B;
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 }
 
-QMenu::item{
+QMenu::item {
 
-    padding:8px 20px;
+    padding: 8px 20px;
 }
 
-QMenu::item:selected{
+QMenu::item:selected {
 
-    background:#2563EB;
+    background: #2563EB;
 }
 
 /* ==========================================================
    Status Colors
    ========================================================== */
 
-#Good{
+#Good {
 
-    color:#10B981;
+    color: #10B981;
 }
 
-#Warning{
+#Warning {
 
-    color:#F59E0B;
+    color: #F59E0B;
 }
 
-#Danger{
+#Danger {
 
-    color:#EF4444;
+    color: #EF4444;
 }
 
 /* ==========================================================
    Statistics Cards
    ========================================================== */
 
-#StatCard{
+#StatCard {
 
-    background:#172554;
+    background: #172554;
 
-    border-radius:16px;
+    border-radius: 16px;
 
-    border:1px solid #2563EB;
+    border: 1px solid #2563EB;
 }
 
-#StatValue{
+#StatValue {
 
-    font-size:22px;
+    font-size: 22px;
 
-    font-weight:700;
+    font-weight: 700;
 
-    color:white;
+    color: white;
 }
 
-#StatTitle{
+#StatTitle {
 
-    color:#CBD5E1;
+    color: #CBD5E1;
 }
 
 /* ==========================================================
    Activity Panel
    ========================================================== */
 
-#ActivityCard{
+#ActivityCard {
 
-    background:#0F172A;
+    background: #0F172A;
 
-    border-radius:14px;
+    border-radius: 14px;
 
-    border:1px solid #334155;
+    border: 1px solid #334155;
 }
 
-#ActivityTitle{
+#ActivityTitle {
 
-    font-size:12pt;
+    font-size: 12pt;
 
-    font-weight:bold;
+    font-weight: bold;
 }
 
-#Timestamp{
+#Timestamp {
 
-    color:#94A3B8;
+    color: #94A3B8;
 }
 
-#SeverityHigh{
+#SeverityHigh {
 
-    color:#EF4444;
+    color: #EF4444;
 }
 
-#SeverityMedium{
+#SeverityMedium {
 
-    color:#F59E0B;
+    color: #F59E0B;
 }
 
-#SeverityLow{
+#SeverityLow {
 
-    color:#10B981;
+    color: #10B981;
 }

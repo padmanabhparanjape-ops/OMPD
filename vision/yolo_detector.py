@@ -1,11 +1,14 @@
 import cv2
+from config.device import DEVICE,GPU_ENABLED
 from ultralytics import YOLO
 from config.config import SENSITIVE_OBJECTS
-import time
+import torch
 
 class YOLODetector:
     def __init__(self, model_path="models/yolov8n.pt", conf=0.5,db=None):
         self.model = YOLO(model_path)
+        self.class_names = self.model.names
+        self.model.to(DEVICE)
         self.conf = conf
         self.db = db
         self.last_logged = {}
@@ -14,15 +17,21 @@ class YOLODetector:
         self.sensitive_objects = SENSITIVE_OBJECTS.copy()
     
     def detect(self, frame):
-        return self.model(frame, verbose=False)
-    
-    def blur_objects(self, frame, results):
+
+        with torch.inference_mode():
+
+            results = self.model(
+                frame,
+                device=DEVICE,
+                half=GPU_ENABLED,
+                verbose=False
+            )
+
+        detections = []
 
         for result in results:
 
-            boxes = result.boxes
-
-            for box in boxes:
+            for box in result.boxes:
 
                 confidence = float(box.conf[0])
 
@@ -30,63 +39,64 @@ class YOLODetector:
                     continue
 
                 cls_id = int(box.cls[0])
-                label = self.model.names[cls_id]
 
-                # -----------------------------------------
-                # Ignore disabled object types
-                # -----------------------------------------
+                label = self.class_names[cls_id]
 
-                enabled = self.sensitive_objects.get(label, False)
-
-                if not enabled:
-                    continue
-
-                # -----------------------------------------
-                # Database Logging
-                # -----------------------------------------
-
-                if self.db:
-
-                    current_time = time.time()
-
-                    if (
-                        label not in self.last_logged
-                        or current_time - self.last_logged[label] > 1
-                    ):
-
-                        self.db.log_detection(
-                            "Object",
-                            label,
-                            confidence
-                        )
-
-                        self.last_logged[label] = current_time
-
-                # -----------------------------------------
-                # Bounding Box
-                # -----------------------------------------
-
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-
-                h, w = frame.shape[:2]
-
-                x1 = max(0, x1)
-                y1 = max(0, y1)
-                x2 = min(w, x2)
-                y2 = min(h, y2)
-
-                roi = frame[y1:y2, x1:x2]
-
-                if roi.size == 0:
-                    continue
-
-                blur = cv2.GaussianBlur(
-                    roi,
-                    (51, 51),
-                    30
+                x1, y1, x2, y2 = map(
+                    int,
+                    box.xyxy[0]
                 )
 
-                frame[y1:y2, x1:x2] = blur
+                detections.append({
+                    "label": label,
+                    "confidence": confidence,
+                    "bbox": (x1, y1, x2, y2)
+                })
+
+        return detections
+    
+    def blur_objects(
+        self,
+        frame,
+        detections,
+        blur_strength=31
+    ):
+
+        for obj in detections:
+
+            label = obj["label"]
+
+            confidence = obj["confidence"]
+
+            if not self.sensitive_objects.get(label, False):
+                continue
+
+            x1, y1, x2, y2 = obj["bbox"]
+
+            h, w = frame.shape[:2]
+
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(w, x2)
+            y2 = min(h, y2)
+
+            roi = frame[y1:y2, x1:x2]
+
+            if roi.size == 0:
+                continue
+
+            blur = max(3, int(blur_strength))
+
+            if blur % 2 == 0:
+                blur += 1
+
+            roi = cv2.GaussianBlur(
+                roi,
+                (blur, blur),
+                0
+            )
+
+            frame[y1:y2, x1:x2] = roi
 
         return frame
     
@@ -103,7 +113,7 @@ class YOLODetector:
                     continue
 
                 cls_id = int(box.cls[0])
-                label = self.model.names[cls_id]
+                label = self.class_names[cls_id]
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 

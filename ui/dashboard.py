@@ -1,6 +1,7 @@
 import sys
 import time
 import cv2
+import csv
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -9,6 +10,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QWidget,
     QTableWidgetItem,
+    QFileDialog
 )
 
 from vision.camera import Camera
@@ -51,6 +53,8 @@ class Dashboard(QWidget):
         # ===============================
         self.current_frame = None
         self.last_scan = None
+        self.current_scan_image = None
+        self.protected_scan_image = None
         self.object_blur_enabled = True
         self.ocr_enabled = True
 
@@ -66,6 +70,13 @@ class Dashboard(QWidget):
         self._cached_faces = []
         self._cached_yolo = []
         self._cached_text = []
+
+        # ---------------------------------
+        # Prevent duplicate history entries
+        # ---------------------------------
+        self.logged_faces = set()
+        self.logged_objects = set()
+        self.logged_text = set()
 
         self.yolo_every_n = 3
         self.face_every_n = 2
@@ -205,6 +216,31 @@ class Dashboard(QWidget):
 
         detections = self._cached_yolo
 
+        current_objects = set()
+
+        for obj in detections:
+            
+            label = obj["label"]
+            confidence = obj["confidence"]
+
+            if not self.yolo.sensitive_objects.get(label, False):
+                continue
+
+            current_objects.add(label)
+
+            if label not in self.logged_objects:
+
+                self.db.log_detection(
+                    "Sensitive Object",
+                    label,
+                    confidence
+                )
+
+                self.logged_objects.add(label)
+
+        # Remove objects that disappeared
+        self.logged_objects.intersection_update(current_objects)
+
         self.objects_value.setText(
             str(len(detections))
         )
@@ -230,6 +266,22 @@ class Dashboard(QWidget):
         self.faces_value.setText(
             str(len(self._cached_faces))
         )
+        # Log face only once while visible
+        if self.face_enabled and len(self._cached_faces) > 0:
+
+            if "Human Face" not in self.logged_faces:
+
+                self.db.log_detection(
+                    "Face",
+                    "Human Face",
+                    1.0
+                )
+
+                self.logged_faces.add("Human Face")
+
+        else:
+
+            self.logged_faces.clear()
 
         # -----------------------------------------
         # OCR
@@ -242,6 +294,36 @@ class Dashboard(QWidget):
                 self._cached_text = (
                     self.text_detector.detect(frame)
                 )
+
+                current_text = set()
+
+                for bbox, text, confidence in self._cached_text:
+
+                    if not self.text_detector.is_sensitive(text):
+                        continue
+
+                    current_text.add(text)
+
+                    if text not in self.logged_text:
+
+                        self.db.log_detection(
+                            "Sensitive Text",
+                            text,
+                            confidence
+                        )
+
+                        self.logged_text.add(text)
+
+                # Remove text that disappeared
+                self.logged_text.intersection_update(current_text)
+
+                for bbox, text, confidence in self._cached_text:
+                    if self.text_detector.is_sensitive(text):
+                        self.db.log_detection(
+                            "Sensitive Text",
+                            text,
+                            confidence
+                        )
 
             frame = self.text_detector.blur_text(
                 frame,
@@ -495,31 +577,39 @@ Time : {timestamp}
 
     def scan_text(self):
 
-        self.scan_button.setEnabled(False)
+        self.scan_text_button.setEnabled(False)
 
         try:
 
             camera_started_here = False
 
             # --------------------------------------------------
-            # If live camera is OFF, start it temporarily
+            # Get image for scanning
             # --------------------------------------------------
 
-            if self.camera_device.cap is None:
+            if self.current_scan_image is not None:
 
-                self.camera_device.start()
-                camera_started_here = True
+                # Use uploaded image
+                frame = self.current_scan_image.copy()
 
-            frame = self.camera_device.get_frame()
+            else:
 
-            if frame is None:
+                # Use live camera
+                if self.camera_device.cap is None:
 
-                self.logs.append(
-                    "Unable to capture image."
-                )
-                return
+                    self.camera_device.start()
+                    camera_started_here = True
 
-            frame = frame.copy()
+                frame = self.camera_device.get_frame()
+
+                if frame is None:
+
+                    self.logs.append(
+                        "Unable to capture image."
+                    )
+                    return
+
+                frame = frame.copy()
 
             # --------------------------------------------------
             # OCR Detection
@@ -563,6 +653,14 @@ Time : {timestamp}
                         )
                     )
 
+                    if self.text_detector.is_sensitive(text):
+
+                        self.db.log_detection(
+                            "Sensitive Text",
+                            text,
+                            confidence
+                        )
+
             except Exception as e:
 
                 self.logs.append(
@@ -596,10 +694,7 @@ Time : {timestamp}
             self.text_value.setText(
                 str(len(results))
             )
-            score = max(
-                0,
-                100 - len(results) * 10
-            )
+            score = max(0, 100 - len(results) * 10)
 
             self.scan_score.setText(
                 f"Privacy Score : {score}"
@@ -630,6 +725,10 @@ Time : {timestamp}
                     "Last Scan : %H:%M:%S"
                 )
             )
+            
+            self.protected_scan_image = frame.copy()
+
+            self.preview_title.setText("🛡 Protected Image")
 
             self.show_scan_preview(frame)
 
@@ -666,6 +765,8 @@ Time : {timestamp}
                 f"📸 Privacy Scan Completed ({len(results)} sensitive text found)"
             )
 
+            self.refresh_history()
+
             self.status.setText(
                 "Privacy Scan Complete"
             )
@@ -686,7 +787,128 @@ Time : {timestamp}
 
         finally:
 
-            self.scan_button.setEnabled(True)
+            self.scan_text_button.setEnabled(True)
+
+    def upload_image(self):
+
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Image",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp)"
+        )
+
+        if not file_name:
+            return
+
+        image = cv2.imread(file_name)
+
+        if image is None:
+            self.status.setText("Failed to load image.")
+            return
+
+        self.current_scan_image = image.copy()
+        self.preview_title.setText("🖼 Uploaded Image")
+        self.scan_results.setRowCount(0)
+
+        self.scan_score.setText("Privacy Score : 100")
+        self.scan_threat.setText("Threat : LOW")
+        self.scan_sensitive.setText("📄 Sensitive : 0")
+        self.scan_time.setText("🕒 Last Scan : --")
+
+        self.scan_recommendation.setText(
+            "Click 'Scan Text' to analyze the uploaded image."
+        )
+
+        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        h, w, ch = rgb.shape
+
+        bytes_per_line = ch * w
+
+        from PySide6.QtGui import QImage
+
+        qimg = QImage(
+            rgb.data,
+            w,
+            h,
+            bytes_per_line,
+            QImage.Format_RGB888
+        )
+
+        pixmap = QPixmap.fromImage(qimg)
+
+        self.scan_preview.setPixmap(
+            pixmap.scaled(
+                self.scan_preview.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+        )
+
+        self.scan_preview.setAlignment(Qt.AlignCenter)
+
+        self.status.setText("Image loaded successfully.")
+
+    def save_safe_image(self):
+
+        if self.protected_scan_image is None:
+
+            self.logs.append("No protected image to save.")
+            return
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Protected Image",
+            "protected_image.png",
+            "PNG Image (*.png);;JPEG Image (*.jpg)"
+        )
+
+        if not file_name:
+            return
+
+        cv2.imwrite(file_name, self.protected_scan_image)
+
+        self.logs.append(f"Protected image saved:\n{file_name}")
+        self.status.setText("Protected image saved.")
+
+    def export_report(self):
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Report",
+            "privacy_report.txt",
+            "Text File (*.txt)"
+        )
+
+        if not file_name:
+            return
+
+        with open(file_name, "w", encoding="utf-8") as report:
+
+            report.write("OMPD Privacy Report\n")
+            report.write("=" * 35 + "\n\n")
+
+            report.write(f"{self.scan_score.text()}\n")
+            report.write(f"{self.scan_threat.text()}\n")
+            report.write(f"{self.scan_faces.text()}\n")
+            report.write(f"{self.scan_objects.text()}\n")
+            report.write(f"{self.scan_sensitive.text()}\n")
+            report.write(f"{self.scan_time.text()}\n\n")
+
+            report.write("Recommendation\n")
+            report.write("-------------------------\n")
+            report.write(
+                self.scan_recommendation.toPlainText()
+            )
+
+        self.logs.append(
+            f"Report exported:\n{file_name}"
+        )
+
+        self.status.setText(
+            "Report exported."
+        )
 
     def capture_and_protect(self):
 
@@ -1007,6 +1229,264 @@ Time : {timestamp}
         finally:
 
             self.capture_button.setEnabled(True)
+
+    def clear_activity(self):
+        pass
+
+    def export_activity(self):
+        pass
+
+    def search_activity(self):
+        pass
+
+    def filter_activity(self):
+        pass
+
+    def refresh_history(self):
+
+        self.history_table.setRowCount(0)
+
+        rows = self.db.get_history()
+
+        self.total_records.setText(
+            f"Total Records : {len(rows)}"
+        )
+
+        self.today_records.setText(
+            f"Today : {len(rows)}"
+        )
+
+        self.high_risk.setText(
+            "High Risk : --"
+        )
+
+        for row_data in rows:
+
+            row = self.history_table.rowCount()
+
+            self.history_table.insertRow(row)
+
+            for column, value in enumerate(row_data):
+
+                if column == 3:
+
+                    value = f"{float(value) * 100:.1f}%"
+
+                self.history_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
+
+            self.history_table.setItem(
+                row,
+                4,
+                QTableWidgetItem("Blurred")
+            )
+
+        if rows:
+
+            self.last_detection.setText(
+                f"Last Detection : {rows[0][0]}"
+            )
+
+        else:
+
+            self.last_detection.setText(
+                "Last Detection : --"
+            )
+
+        self.status.setText(
+            "History refreshed."
+        )
+
+    def get_history(self):
+
+        self.cursor.execute(
+            """
+            SELECT
+                timestamp,
+                type,
+                label,
+                confidence
+            FROM detections
+            ORDER BY timestamp DESC
+            """
+        )
+
+        return self.cursor.fetchall()
+
+    def export_history(self):
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export History",
+            "history.csv",
+            "CSV Files (*.csv)"
+        )
+
+        if not file_name:
+            return
+
+        with open(file_name, "w", newline="", encoding="utf-8") as file:
+
+            writer = csv.writer(file)
+
+            writer.writerow([
+                "Timestamp",
+                "Category",
+                "Detected Item",
+                "Confidence",
+                "Action"
+            ])
+
+            for row in range(self.history_table.rowCount()):
+
+                values = []
+
+                for column in range(self.history_table.columnCount()):
+
+                    item = self.history_table.item(row, column)
+
+                    values.append("" if item is None else item.text())
+
+                writer.writerow(values)
+
+        self.status.setText("History exported successfully.")
+
+        self.logs.append(
+            f"📄 History exported:\n{file_name}"
+        )
+
+    def delete_history(self):
+
+        row = self.history_table.currentRow()
+
+        if row == -1:
+
+            self.status.setText(
+                "No record selected."
+            )
+            return
+
+        timestamp = self.history_table.item(row, 0).text()
+        event_type = self.history_table.item(row, 1).text()
+        label = self.history_table.item(row, 2).text()
+
+        self.db.delete_history_record(
+            timestamp,
+            event_type,
+            label
+        )
+
+        self.refresh_history()
+
+        self.logs.append(
+            f"Deleted: {label}"
+        )
+
+        self.status.setText(
+            "Record deleted."
+        )
+
+    def clear_history(self):
+
+        self.db.clear_history()
+
+        self.refresh_history()
+
+        self.logs.append(
+            "History cleared."
+        )
+
+        self.status.setText(
+            "History cleared."
+        )
+
+    def search_history(self):
+
+        search = self.history_search.text().lower().strip()
+
+        for row in range(self.history_table.rowCount()):
+
+            show = False
+
+            for column in range(self.history_table.columnCount()):
+
+                item = self.history_table.item(row, column)
+
+                if item and search in item.text().lower():
+
+                    show = True
+                    break
+
+            self.history_table.setRowHidden(
+                row,
+                not show
+            )
+
+    def filter_history(self):
+
+        selected = self.history_filter.currentText()
+
+        for row in range(self.history_table.rowCount()):
+
+            category_item = self.history_table.item(row, 1)
+
+            if category_item is None:
+
+                continue
+
+            category = category_item.text()
+
+            if selected == "All":
+
+                self.history_table.setRowHidden(row, False)
+
+            elif selected == "Faces":
+
+                self.history_table.setRowHidden(
+                    row,
+                    category != "Face"
+                )
+
+            elif selected == "Objects":
+
+                self.history_table.setRowHidden(
+                    row,
+                    category != "Sensitive Object"
+                )
+
+            elif selected == "Sensitive Text":
+
+                self.history_table.setRowHidden(
+                    row,
+                    category != "Sensitive Text"
+                )
+
+    def save_settings_clicked(self):
+        pass
+
+    def reset_settings_clicked(self):
+        pass
+
+    def export_database_clicked(self):
+        pass
+
+    def backup_database_clicked(self):
+        pass
+
+    def clear_database_clicked(self):
+        pass
+
+    def open_github(self):
+        pass
+
+    def open_license(self):
+        pass
+
+    def update_analytics(self):
+        pass
 
     # ======================================================
     # FACE BLUR

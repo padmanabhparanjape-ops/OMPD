@@ -18,7 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
     QTableWidget,
     QTableWidgetItem,
-    QHeaderView
+    QHeaderView,
+    QLineEdit
 )
 
 
@@ -74,10 +75,12 @@ def build_sidebar(self):
     logo = QLabel("🛡 OMPD")
     logo.setAlignment(Qt.AlignCenter)
     logo.setObjectName("Logo")
+    logo.setFocusPolicy(Qt.NoFocus)
 
     subtitle = QLabel("PrivacyLens")
     subtitle.setAlignment(Qt.AlignCenter)
     subtitle.setObjectName("Subtitle")
+    subtitle.setFocusPolicy(Qt.NoFocus)
 
     sidebar_layout.addWidget(logo)
     sidebar_layout.addWidget(subtitle)
@@ -132,9 +135,13 @@ def build_sidebar(self):
             self.activity_page
         )
     )
+
     self.history_btn.clicked.connect(
-        lambda: self.stack.setCurrentWidget(
-            self.history_page
+        lambda: (
+            self.refresh_history(),
+            self.stack.setCurrentWidget(
+                self.history_page
+            )
         )
     )
 
@@ -164,13 +171,24 @@ def build_pages(self):
 
     self.home_page = QWidget()
     build_home_page(self)
+
     self.scan_page = QWidget()
     build_scan_page(self)
+
     self.activity_page = QWidget()
+    build_activity_page(self)
+
     self.history_page = QWidget()
+    build_history_page(self)
+
     self.analytics_page = QWidget()
+    build_analytics_page(self)
+
     self.settings_page = QWidget()
+    build_settings_page(self)
+
     self.about_page = QWidget()
+    build_about_page(self)
 
     self.stack.addWidget(self.home_page)
     self.stack.addWidget(self.scan_page)
@@ -179,14 +197,10 @@ def build_pages(self):
     self.stack.addWidget(self.analytics_page)
     self.stack.addWidget(self.settings_page)
     self.stack.addWidget(self.about_page)
-    self.stack.setCurrentWidget(
-    self.home_page
-)
 
-    self.main_layout.addWidget(
-        self.stack,
-        stretch=1
-    )
+    self.stack.setCurrentWidget(self.home_page)
+
+    self.main_layout.addWidget(self.stack, stretch=1)
 
 def build_home_page(self):
 
@@ -364,8 +378,8 @@ def build_scan_page(self):
     left_layout.setContentsMargins(10, 10, 10, 10)
     left_layout.setSpacing(10)
 
-    preview_title = QLabel("🛡 Protected Snapshot")
-    preview_title.setObjectName("CardTitle")
+    self.preview_title = QLabel("🖼 Uploaded Image")
+    self.preview_title.setObjectName("CardTitle")
 
     self.scan_preview = QLabel()
     self.scan_preview.setSizePolicy(
@@ -390,7 +404,7 @@ def build_scan_page(self):
         "No image captured.\n\nPress 'Capture & Scan'."
     )
 
-    left_layout.addWidget(preview_title)
+    left_layout.addWidget(self.preview_title)
     left_layout.addWidget(self.scan_preview)
 
     body.addWidget(left, 7)
@@ -435,7 +449,7 @@ def build_scan_page(self):
     buttons = QVBoxLayout()
 
     buttons.setContentsMargins(8, 0, 8, 0)
-    buttons.setSpacing(18)
+    buttons.setSpacing(10)
 
     for btn in (
         self.scan_text_button,
@@ -443,10 +457,10 @@ def build_scan_page(self):
         self.save_button,
         self.report_button
     ):
-        btn.setFixedHeight(48)
-        btn.setMinimumWidth(220)
+        btn.setFixedHeight(42)
+        btn.setMinimumWidth(0)
         btn.setSizePolicy(
-            QSizePolicy.Expanding,
+            QSizePolicy.Preferred,
             QSizePolicy.Fixed
         )
 
@@ -454,7 +468,7 @@ def build_scan_page(self):
 
     right_layout.addLayout(buttons)
 
-    right_layout.addSpacing(18)
+    right_layout.addSpacing(25)
 
     # =====================================================
     # PRIVACY HEALTH
@@ -470,8 +484,6 @@ def build_scan_page(self):
 
     right_layout.addSpacing(15)
 
-    self.scan_faces = QLabel("👤 Faces : 0")
-    self.scan_objects = QLabel("📦 Objects : 0")
     self.scan_sensitive = QLabel("📄 Sensitive : 0")
     self.scan_time = QLabel("🕒 Last Scan : --")
 
@@ -483,9 +495,6 @@ def build_scan_page(self):
     stats.setContentsMargins(12,12,12,12)
     stats.setHorizontalSpacing(18)
     stats.setVerticalSpacing(12)
-
-    stats.addWidget(self.scan_faces,0,0)
-    stats.addWidget(self.scan_objects,0,1)
 
     stats.addWidget(self.scan_sensitive,1,0)
     stats.addWidget(self.scan_time,1,1)
@@ -589,6 +598,1114 @@ def build_scan_page(self):
 
     self.scan_text_button.clicked.connect(
         self.scan_text
+    )
+    self.upload_button.clicked.connect(
+        self.upload_image
+    )
+
+    self.save_button.clicked.connect(
+        self.save_safe_image
+    )
+
+    self.report_button.clicked.connect(
+        self.export_report
+    )
+
+def build_activity_page(self):
+
+    activity_layout = QVBoxLayout(self.activity_page)
+
+    activity_layout.setContentsMargins(20, 20, 20, 20)
+    activity_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header = QFrame()
+    header.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header)
+    header_layout.setContentsMargins(15, 10, 15, 10)
+
+    title = QLabel(
+        "📋 Activity Center   "
+        "<span style='font-size:15px;color:#8A8F98;'>"
+        ":: Live privacy events and detections"
+        "</span>"
+    )
+
+    title.setObjectName("Title")
+    title.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(title)
+    header_layout.addStretch()
+
+    self.activity_status = QLabel("Monitoring")
+    self.activity_status.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.activity_status)
+
+    activity_layout.addWidget(header)
+
+    # =====================================================
+    # TOOLBAR
+    # =====================================================
+
+    toolbar = QFrame()
+    toolbar.setObjectName("Card")
+
+    toolbar_layout = QHBoxLayout(toolbar)
+    toolbar_layout.setContentsMargins(12, 12, 12, 12)
+
+    self.activity_search = QLineEdit()
+    self.activity_search.setPlaceholderText(
+        "Search activity..."
+    )
+
+    self.activity_filter = QComboBox()
+    self.activity_filter.addItems([
+        "All",
+        "Faces",
+        "Objects",
+        "Sensitive Text",
+        "Warnings"
+    ])
+
+    self.clear_activity_btn = QPushButton("🗑 Clear")
+    self.export_activity_btn = QPushButton("💾 Export CSV")
+    self.refresh_activity_btn = QPushButton("🔄 Refresh")
+
+    toolbar_layout.addWidget(self.activity_search, 3)
+    toolbar_layout.addWidget(self.activity_filter, 1)
+    toolbar_layout.addWidget(self.refresh_activity_btn)
+    toolbar_layout.addWidget(self.export_activity_btn)
+    toolbar_layout.addWidget(self.clear_activity_btn)
+
+    activity_layout.addWidget(toolbar)
+
+    # =====================================================
+    # LIVE STATISTICS
+    # =====================================================
+
+    stats = QGridLayout()
+
+    def stat_card(title, value):
+
+        card = QFrame()
+        card.setObjectName("StatCard")
+        card.setMinimumHeight(90)
+
+        layout = QVBoxLayout(card)
+
+        value_label = QLabel(value)
+        value_label.setObjectName("StatValue")
+
+        title_label = QLabel(title)
+        title_label.setObjectName("StatLabel")
+
+        layout.addWidget(value_label)
+        layout.addWidget(title_label)
+
+        return card, value_label
+
+    total_card, self.activity_total = stat_card(
+        "Today's Events",
+        "0"
+    )
+
+    face_card, self.activity_faces = stat_card(
+        "Faces",
+        "0"
+    )
+
+    object_card, self.activity_objects = stat_card(
+        "Objects",
+        "0"
+    )
+
+    text_card, self.activity_text = stat_card(
+        "Sensitive Text",
+        "0"
+    )
+
+    stats.addWidget(total_card, 0, 0)
+    stats.addWidget(face_card, 0, 1)
+    stats.addWidget(object_card, 0, 2)
+    stats.addWidget(text_card, 0, 3)
+
+    activity_layout.addLayout(stats)
+
+    # =====================================================
+    # LIVE ACTIVITY LOG
+    # =====================================================
+
+    log_card = QFrame()
+    log_card.setObjectName("Card")
+
+    log_layout = QVBoxLayout(log_card)
+
+    log_title = QLabel("Recent Activity")
+    log_title.setObjectName("CardTitle")
+
+    self.activity_log = QTextEdit()
+
+    self.activity_log.setReadOnly(True)
+
+    self.activity_log.setPlaceholderText(
+        "Live detections will appear here..."
+    )
+
+    self.activity_log.setMinimumHeight(420)
+
+    log_layout.addWidget(log_title)
+    log_layout.addWidget(self.activity_log)
+
+    activity_layout.addWidget(log_card)
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+
+    footer = QFrame()
+    footer.setObjectName("StatusBar")
+
+    footer_layout = QHBoxLayout(footer)
+
+    self.activity_footer = QLabel(
+        "Waiting for detections..."
+    )
+
+    footer_layout.addWidget(self.activity_footer)
+    footer_layout.addStretch()
+
+    activity_layout.addWidget(footer)
+
+    self.refresh_activity_btn.clicked.connect(
+        self.refresh_activity
+    )
+
+    self.clear_activity_btn.clicked.connect(
+        self.clear_activity
+    )
+
+    self.export_activity_btn.clicked.connect(
+        self.export_activity
+    )
+
+    self.activity_search.textChanged.connect(
+        self.search_activity
+    )
+
+    self.activity_filter.currentTextChanged.connect(
+        self.filter_activity
+    )
+
+def build_history_page(self):
+
+    history_layout = QVBoxLayout(self.history_page)
+
+    history_layout.setContentsMargins(20, 20, 20, 20)
+    history_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header = QFrame()
+    header.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header)
+    header_layout.setContentsMargins(15, 10, 15, 10)
+
+    title = QLabel(
+        "📜 History   "
+        "<span style='font-size:15px;color:#8A8F98;'>"
+        ":: Detection database"
+        "</span>"
+    )
+
+    title.setObjectName("Title")
+    title.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(title)
+    header_layout.addStretch()
+
+    self.history_status = QLabel("Database Connected")
+    self.history_status.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.history_status)
+
+    history_layout.addWidget(header)
+
+    # =====================================================
+    # TOOLBAR
+    # =====================================================
+
+    toolbar = QFrame()
+    toolbar.setObjectName("Card")
+
+    toolbar_layout = QHBoxLayout(toolbar)
+    toolbar_layout.setContentsMargins(12,12,12,12)
+
+    self.history_search = QLineEdit()
+    self.history_search.setPlaceholderText(
+        "Search..."
+    )
+
+    self.history_filter = QComboBox()
+
+    self.history_filter.addItems([
+        "All",
+        "Faces",
+        "Objects",
+        "Sensitive Text"
+    ])
+
+    self.history_refresh = QPushButton("🔄 Refresh")
+    self.history_export = QPushButton("💾 Export CSV")
+    self.history_delete = QPushButton("🗑 Delete Selected")
+    self.history_clear = QPushButton("❌ Clear History")
+
+    toolbar_layout.addWidget(self.history_search,3)
+    toolbar_layout.addWidget(self.history_filter,1)
+    toolbar_layout.addWidget(self.history_refresh)
+    toolbar_layout.addWidget(self.history_export)
+    toolbar_layout.addWidget(self.history_delete)
+    toolbar_layout.addWidget(self.history_clear)
+
+    history_layout.addWidget(toolbar)
+
+    # =====================================================
+    # DATABASE TABLE
+    # =====================================================
+
+    table_card = QFrame()
+    table_card.setObjectName("Card")
+
+    table_layout = QVBoxLayout(table_card)
+
+    table_title = QLabel("Detection History")
+    table_title.setObjectName("CardTitle")
+
+    self.history_table = QTableWidget()
+
+    self.history_table.setColumnCount(5)
+
+    self.history_table.setHorizontalHeaderLabels([
+        "Timestamp",
+        "Category",
+        "Detected Item",
+        "Confidence",
+        "Action"
+    ])
+
+    self.history_table.horizontalHeader().setStretchLastSection(True)
+
+    self.history_table.horizontalHeader().setSectionResizeMode(
+        QHeaderView.Stretch
+    )
+
+    self.history_table.verticalHeader().setVisible(False)
+
+    self.history_table.setAlternatingRowColors(True)
+
+    self.history_table.setSelectionBehavior(
+        QTableWidget.SelectRows
+    )
+
+    self.history_table.setEditTriggers(
+        QTableWidget.NoEditTriggers
+    )
+
+    self.history_table.setMinimumHeight(500)
+
+    table_layout.addWidget(table_title)
+    table_layout.addWidget(self.history_table)
+
+    history_layout.addWidget(table_card)
+
+    # =====================================================
+    # SUMMARY
+    # =====================================================
+
+    summary = QFrame()
+    summary.setObjectName("Card")
+
+    summary_layout = QGridLayout(summary)
+
+    summary_layout.setContentsMargins(15,15,15,15)
+
+    self.total_records = QLabel("Total Records : 0")
+    self.today_records = QLabel("Today : 0")
+    self.high_risk = QLabel("High Risk : 0")
+    self.last_detection = QLabel("Last Detection : --")
+
+    summary_layout.addWidget(self.total_records,0,0)
+    summary_layout.addWidget(self.today_records,0,1)
+    summary_layout.addWidget(self.high_risk,1,0)
+    summary_layout.addWidget(self.last_detection,1,1)
+
+    history_layout.addWidget(summary)
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+
+    footer = QFrame()
+    footer.setObjectName("StatusBar")
+
+    footer_layout = QHBoxLayout(footer)
+
+    self.history_footer = QLabel(
+        "Ready"
+    )
+
+    footer_layout.addWidget(self.history_footer)
+    footer_layout.addStretch()
+
+    history_layout.addWidget(footer)
+
+    self.history_refresh.clicked.connect(
+        self.refresh_history
+    )
+
+    self.history_export.clicked.connect(
+        self.export_history
+    )
+
+    self.history_delete.clicked.connect(
+        self.delete_history
+    )
+
+    self.history_clear.clicked.connect(
+        self.clear_history
+    )
+
+    self.history_search.textChanged.connect(
+        self.search_history
+    )
+
+    self.history_filter.currentTextChanged.connect(
+        self.filter_history
+    )
+
+def build_analytics_page(self):
+
+    analytics_layout = QVBoxLayout(self.analytics_page)
+
+    analytics_layout.setContentsMargins(20, 20, 20, 20)
+    analytics_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header = QFrame()
+    header.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header)
+    header_layout.setContentsMargins(15,10,15,10)
+
+    title = QLabel(
+        "📈 Analytics   "
+        "<span style='font-size:15px;color:#8A8F98;'>"
+        ":: AI performance and privacy insights"
+        "</span>"
+    )
+
+    title.setObjectName("Title")
+    title.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(title)
+    header_layout.addStretch()
+
+    self.analytics_status = QLabel("Live")
+    self.analytics_status.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.analytics_status)
+
+    analytics_layout.addWidget(header)
+
+    # =====================================================
+    # TOP STATISTICS
+    # =====================================================
+
+    stats = QGridLayout()
+    stats.setHorizontalSpacing(15)
+    stats.setVerticalSpacing(15)
+
+    def stat_card(title, value):
+
+        card = QFrame()
+        card.setObjectName("StatCard")
+        card.setMinimumHeight(95)
+
+        layout = QVBoxLayout(card)
+
+        value_label = QLabel(value)
+        value_label.setObjectName("StatValue")
+
+        title_label = QLabel(title)
+        title_label.setObjectName("StatLabel")
+
+        layout.addWidget(value_label)
+        layout.addWidget(title_label)
+
+        return card, value_label
+
+    total_card, self.analytics_total = stat_card(
+        "Total Detections",
+        "0"
+    )
+
+    faces_card, self.analytics_faces = stat_card(
+        "Faces",
+        "0"
+    )
+
+    objects_card, self.analytics_objects = stat_card(
+        "Objects",
+        "0"
+    )
+
+    text_card, self.analytics_text = stat_card(
+        "Sensitive Text",
+        "0"
+    )
+
+    privacy_card, self.analytics_privacy = stat_card(
+        "Privacy Score",
+        "100"
+    )
+
+    fps_card, self.analytics_fps = stat_card(
+        "Average FPS",
+        "--"
+    )
+
+    stats.addWidget(total_card,0,0)
+    stats.addWidget(faces_card,0,1)
+    stats.addWidget(objects_card,0,2)
+
+    stats.addWidget(text_card,1,0)
+    stats.addWidget(privacy_card,1,1)
+    stats.addWidget(fps_card,1,2)
+
+    analytics_layout.addLayout(stats)
+
+    # =====================================================
+    # CHART PLACEHOLDERS
+    # =====================================================
+
+    charts = QHBoxLayout()
+    charts.setSpacing(15)
+
+    # Detection Trend
+
+    trend_card = QFrame()
+    trend_card.setObjectName("Card")
+
+    trend_layout = QVBoxLayout(trend_card)
+
+    trend_title = QLabel("Detection Trend")
+    trend_title.setObjectName("CardTitle")
+
+    self.trend_chart = QLabel()
+
+    self.trend_chart.setAlignment(Qt.AlignCenter)
+    self.trend_chart.setMinimumHeight(250)
+
+    self.trend_chart.setText(
+        "Detection Trend Chart\n\n(Matplotlib / QtChart)"
+    )
+
+    trend_layout.addWidget(trend_title)
+    trend_layout.addWidget(self.trend_chart)
+
+    charts.addWidget(trend_card)
+
+    # Object Distribution
+
+    object_card = QFrame()
+    object_card.setObjectName("Card")
+
+    object_layout = QVBoxLayout(object_card)
+
+    object_title = QLabel("Object Distribution")
+    object_title.setObjectName("CardTitle")
+
+    self.object_chart = QLabel()
+
+    self.object_chart.setAlignment(Qt.AlignCenter)
+    self.object_chart.setMinimumHeight(250)
+
+    self.object_chart.setText(
+        "Object Distribution Chart"
+    )
+
+    object_layout.addWidget(object_title)
+    object_layout.addWidget(self.object_chart)
+
+    charts.addWidget(object_card)
+
+    analytics_layout.addLayout(charts)
+
+    # =====================================================
+    # SYSTEM INFORMATION
+    # =====================================================
+
+    system_card = QFrame()
+    system_card.setObjectName("Card")
+
+    system_layout = QGridLayout(system_card)
+
+    system_layout.setContentsMargins(15,15,15,15)
+
+    self.device_info = QLabel("AI Device : CUDA")
+    self.model_info = QLabel("Model : YOLOv8n")
+    self.camera_info = QLabel("Camera : Offline")
+    self.database_info = QLabel("Database : Connected")
+    self.runtime_info = QLabel("Runtime : PyTorch CUDA")
+    self.version_info = QLabel("Version : 1.0")
+
+    system_layout.addWidget(self.device_info,0,0)
+    system_layout.addWidget(self.model_info,0,1)
+
+    system_layout.addWidget(self.camera_info,1,0)
+    system_layout.addWidget(self.database_info,1,1)
+
+    system_layout.addWidget(self.runtime_info,2,0)
+    system_layout.addWidget(self.version_info,2,1)
+
+    analytics_layout.addWidget(system_card)
+
+    # =====================================================
+    # INSIGHTS
+    # =====================================================
+
+    insights = QFrame()
+    insights.setObjectName("Card")
+
+    insights_layout = QVBoxLayout(insights)
+
+    insights_title = QLabel("🧠 AI Insights")
+    insights_title.setObjectName("CardTitle")
+
+    self.analytics_insights = QTextEdit()
+
+    self.analytics_insights.setReadOnly(True)
+
+    self.analytics_insights.setMinimumHeight(160)
+
+    self.analytics_insights.setText(
+        "AI insights will appear here.\n\n"
+        "• Most frequently detected object\n"
+        "• Highest privacy risk\n"
+        "• Detection trends\n"
+        "• Performance summary"
+    )
+
+    insights_layout.addWidget(insights_title)
+    insights_layout.addWidget(self.analytics_insights)
+
+    analytics_layout.addWidget(insights)
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+
+    footer = QFrame()
+    footer.setObjectName("StatusBar")
+
+    footer_layout = QHBoxLayout(footer)
+
+    self.analytics_footer = QLabel(
+        "Analytics Ready"
+    )
+
+    footer_layout.addWidget(self.analytics_footer)
+    footer_layout.addStretch()
+
+    analytics_layout.addWidget(footer)
+
+def build_settings_page(self):
+
+    settings_layout = QVBoxLayout(self.settings_page)
+
+    settings_layout.setContentsMargins(20,20,20,20)
+    settings_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header = QFrame()
+    header.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header)
+    header_layout.setContentsMargins(15,10,15,10)
+
+    title = QLabel(
+        "⚙ Settings   "
+        "<span style='font-size:15px;color:#8A8F98;'>"
+        ":: Configure OMPD"
+        "</span>"
+    )
+
+    title.setObjectName("Title")
+    title.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(title)
+    header_layout.addStretch()
+
+    self.settings_status = QLabel("Ready")
+    self.settings_status.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.settings_status)
+
+    settings_layout.addWidget(header)
+
+    # =====================================================
+    # SCROLL AREA
+    # =====================================================
+
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.NoFrame)
+
+    container = QWidget()
+    container_layout = QVBoxLayout(container)
+    container_layout.setSpacing(20)
+
+    # =====================================================
+    # CAMERA SETTINGS
+    # =====================================================
+
+    camera_card = QFrame()
+    camera_card.setObjectName("Card")
+
+    camera_layout = QVBoxLayout(camera_card)
+
+    camera_title = QLabel("📷 Camera")
+    camera_title.setObjectName("CardTitle")
+
+    self.settings_camera = QComboBox()
+    self.settings_camera.addItems([
+        "Camera 0",
+        "Camera 1"
+    ])
+
+    self.settings_resolution = QComboBox()
+    self.settings_resolution.addItems([
+        "640 × 480",
+        "1280 × 720",
+        "1920 × 1080"
+    ])
+
+    camera_layout.addWidget(camera_title)
+    camera_layout.addWidget(QLabel("Camera"))
+    camera_layout.addWidget(self.settings_camera)
+    camera_layout.addWidget(QLabel("Resolution"))
+    camera_layout.addWidget(self.settings_resolution)
+
+    container_layout.addWidget(camera_card)
+
+    # =====================================================
+    # AI SETTINGS
+    # =====================================================
+
+    ai_card = QFrame()
+    ai_card.setObjectName("Card")
+
+    ai_layout = QVBoxLayout(ai_card)
+
+    ai_title = QLabel("🧠 AI Detection")
+    ai_title.setObjectName("CardTitle")
+
+    self.settings_face = QCheckBox("Enable Face Blur")
+    self.settings_face.setChecked(True)
+
+    self.settings_object = QCheckBox("Enable Object Blur")
+    self.settings_object.setChecked(True)
+
+    self.settings_ocr = QCheckBox("Enable OCR")
+    self.settings_ocr.setChecked(True)
+
+    self.settings_gpu = QCheckBox("Use GPU (CUDA)")
+    self.settings_gpu.setChecked(True)
+
+    ai_layout.addWidget(ai_title)
+    ai_layout.addWidget(self.settings_face)
+    ai_layout.addWidget(self.settings_object)
+    ai_layout.addWidget(self.settings_ocr)
+    ai_layout.addWidget(self.settings_gpu)
+
+    container_layout.addWidget(ai_card)
+
+    # =====================================================
+    # PERFORMANCE
+    # =====================================================
+
+    performance_card = QFrame()
+    performance_card.setObjectName("Card")
+
+    performance_layout = QVBoxLayout(performance_card)
+
+    performance_title = QLabel("⚡ Performance")
+    performance_title.setObjectName("CardTitle")
+
+    self.settings_confidence = QLabel(
+        f"YOLO Confidence : {self.yolo_conf:.2f}"
+    )
+
+    self.settings_conf_slider = QSlider(Qt.Horizontal)
+    self.settings_conf_slider.setRange(0,100)
+    self.settings_conf_slider.setValue(
+        int(self.yolo_conf*100)
+    )
+
+    self.settings_blur = QLabel(
+        f"Blur Strength : {self.blur_strength}"
+    )
+
+    self.settings_blur_slider = QSlider(Qt.Horizontal)
+    self.settings_blur_slider.setRange(1,100)
+    self.settings_blur_slider.setValue(
+        self.blur_strength
+    )
+
+    performance_layout.addWidget(performance_title)
+    performance_layout.addWidget(self.settings_confidence)
+    performance_layout.addWidget(self.settings_conf_slider)
+    performance_layout.addSpacing(10)
+    performance_layout.addWidget(self.settings_blur)
+    performance_layout.addWidget(self.settings_blur_slider)
+
+    container_layout.addWidget(performance_card)
+
+    # =====================================================
+    # DATABASE
+    # =====================================================
+
+    db_card = QFrame()
+    db_card.setObjectName("Card")
+
+    db_layout = QVBoxLayout(db_card)
+
+    db_title = QLabel("🗄 Database")
+    db_title.setObjectName("CardTitle")
+
+    self.export_database = QPushButton(
+        "💾 Export Database"
+    )
+
+    self.backup_database = QPushButton(
+        "📦 Backup Database"
+    )
+
+    self.clear_database = QPushButton(
+        "🗑 Clear Database"
+    )
+
+    db_layout.addWidget(db_title)
+    db_layout.addWidget(self.export_database)
+    db_layout.addWidget(self.backup_database)
+    db_layout.addWidget(self.clear_database)
+
+    container_layout.addWidget(db_card)
+
+    # =====================================================
+    # APPLICATION
+    # =====================================================
+
+    app_card = QFrame()
+    app_card.setObjectName("Card")
+
+    app_layout = QVBoxLayout(app_card)
+
+    app_title = QLabel("🖥 Application")
+    app_title.setObjectName("CardTitle")
+
+    self.dark_mode = QCheckBox("Dark Theme")
+    self.dark_mode.setChecked(True)
+
+    self.notifications = QCheckBox(
+        "Enable Notifications"
+    )
+
+    self.auto_start = QCheckBox(
+        "Start Camera Automatically"
+    )
+
+    self.auto_save = QCheckBox(
+        "Auto Save Protected Images"
+    )
+
+    app_layout.addWidget(app_title)
+    app_layout.addWidget(self.dark_mode)
+    app_layout.addWidget(self.notifications)
+    app_layout.addWidget(self.auto_start)
+    app_layout.addWidget(self.auto_save)
+
+    container_layout.addWidget(app_card)
+
+    # =====================================================
+    # SAVE / RESET
+    # =====================================================
+
+    buttons = QHBoxLayout()
+
+    self.save_settings = QPushButton(
+        "💾 Save Settings"
+    )
+
+    self.reset_settings = QPushButton(
+        "🔄 Restore Defaults"
+    )
+
+    buttons.addStretch()
+    buttons.addWidget(self.reset_settings)
+    buttons.addWidget(self.save_settings)
+
+    container_layout.addLayout(buttons)
+
+    scroll.setWidget(container)
+
+    settings_layout.addWidget(scroll)
+
+    self.save_settings.clicked.connect(
+        self.save_settings_clicked
+    )
+
+    self.reset_settings.clicked.connect(
+        self.reset_settings_clicked
+    )
+
+    self.export_database.clicked.connect(
+        self.export_database_clicked
+    )
+
+    self.backup_database.clicked.connect(
+        self.backup_database_clicked
+    )
+
+    self.clear_database.clicked.connect(
+        self.clear_database_clicked
+    )
+
+def build_about_page(self):
+
+    about_layout = QVBoxLayout(self.about_page)
+
+    about_layout.setContentsMargins(20,20,20,20)
+    about_layout.setSpacing(20)
+
+    # =====================================================
+    # HEADER
+    # =====================================================
+
+    header = QFrame()
+    header.setObjectName("TopBar")
+
+    header_layout = QHBoxLayout(header)
+    header_layout.setContentsMargins(15,10,15,10)
+
+    title = QLabel(
+        "ℹ About OMPD   "
+        "<span style='font-size:15px;color:#8A8F98;'>"
+        ":: On-Device Privacy Monitoring"
+        "</span>"
+    )
+
+    title.setObjectName("Title")
+    title.setTextFormat(Qt.RichText)
+
+    header_layout.addWidget(title)
+    header_layout.addStretch()
+
+    self.about_status = QLabel("Version 1.0")
+    self.about_status.setObjectName("StatusGood")
+
+    header_layout.addWidget(self.about_status)
+
+    about_layout.addWidget(header)
+
+    # =====================================================
+    # PROJECT CARD
+    # =====================================================
+
+    project_card = QFrame()
+    project_card.setObjectName("Card")
+
+    project_layout = QVBoxLayout(project_card)
+
+    logo = QLabel("🛡")
+    logo.setAlignment(Qt.AlignCenter)
+    logo.setStyleSheet("font-size:72px;")
+
+    project_name = QLabel("OMPD")
+    project_name.setObjectName("Title")
+    project_name.setAlignment(Qt.AlignCenter)
+
+    subtitle = QLabel("On-Device Privacy Monitoring & Detection")
+    subtitle.setAlignment(Qt.AlignCenter)
+
+    description = QTextEdit()
+    description.setReadOnly(True)
+    description.setMinimumHeight(130)
+
+    description.setText(
+        "OMPD is an AI-powered privacy protection application "
+        "that detects and protects sensitive information in "
+        "real time using completely on-device inference.\n\n"
+
+        "The application automatically detects:\n"
+        "• Human Faces\n"
+        "• Sensitive Objects\n"
+        "• Sensitive Text\n"
+        "• QR Codes\n\n"
+
+        "All processing occurs locally to preserve user privacy."
+    )
+
+    project_layout.addWidget(logo)
+    project_layout.addWidget(project_name)
+    project_layout.addWidget(subtitle)
+    project_layout.addSpacing(10)
+    project_layout.addWidget(description)
+
+    about_layout.addWidget(project_card)
+
+    # =====================================================
+    # TECHNOLOGY
+    # =====================================================
+
+    tech_card = QFrame()
+    tech_card.setObjectName("Card")
+
+    tech_layout = QGridLayout(tech_card)
+
+    tech_layout.setContentsMargins(15,15,15,15)
+
+    tech_layout.addWidget(QLabel("YOLO Model"),0,0)
+    tech_layout.addWidget(QLabel("YOLOv8n"),0,1)
+
+    tech_layout.addWidget(QLabel("OCR Engine"),1,0)
+    tech_layout.addWidget(QLabel("EasyOCR"),1,1)
+
+    tech_layout.addWidget(QLabel("Face Detection"),2,0)
+    tech_layout.addWidget(QLabel("MediaPipe"),2,1)
+
+    tech_layout.addWidget(QLabel("GUI"),3,0)
+    tech_layout.addWidget(QLabel("PySide6"),3,1)
+
+    tech_layout.addWidget(QLabel("Computer Vision"),4,0)
+    tech_layout.addWidget(QLabel("OpenCV"),4,1)
+
+    tech_layout.addWidget(QLabel("AI Runtime"),5,0)
+    tech_layout.addWidget(QLabel("PyTorch CUDA"),5,1)
+
+    tech_layout.addWidget(QLabel("Database"),6,0)
+    tech_layout.addWidget(QLabel("SQLite"),6,1)
+
+    about_layout.addWidget(tech_card)
+
+    # =====================================================
+    # SYSTEM
+    # =====================================================
+
+    system_card = QFrame()
+    system_card.setObjectName("Card")
+
+    system_layout = QGridLayout(system_card)
+
+    system_layout.setContentsMargins(15,15,15,15)
+
+    self.about_gpu = QLabel("GPU : NVIDIA RTX 4050")
+    self.about_device = QLabel("Device : CUDA")
+    self.about_python = QLabel("Python : 3.11")
+    self.about_opencv = QLabel("OpenCV : 4.10")
+    self.about_database = QLabel("Database : SQLite")
+    self.about_runtime = QLabel("Runtime : Local")
+
+    system_layout.addWidget(self.about_gpu,0,0)
+    system_layout.addWidget(self.about_device,0,1)
+
+    system_layout.addWidget(self.about_python,1,0)
+    system_layout.addWidget(self.about_opencv,1,1)
+
+    system_layout.addWidget(self.about_database,2,0)
+    system_layout.addWidget(self.about_runtime,2,1)
+
+    about_layout.addWidget(system_card)
+
+    # =====================================================
+    # FEATURES
+    # =====================================================
+
+    feature_card = QFrame()
+    feature_card.setObjectName("Card")
+
+    feature_layout = QVBoxLayout(feature_card)
+
+    feature_title = QLabel("Features")
+    feature_title.setObjectName("CardTitle")
+
+    features = QTextEdit()
+    features.setReadOnly(True)
+    features.setMinimumHeight(170)
+
+    features.setText(
+        "✓ Real-Time Face Protection\n"
+        "✓ Sensitive Object Detection\n"
+        "✓ OCR-Based Privacy Protection\n"
+        "✓ QR Code Detection\n"
+        "✓ GPU Acceleration\n"
+        "✓ SQLite Logging\n"
+        "✓ Analytics Dashboard\n"
+        "✓ Privacy Scan\n"
+        "✓ Activity Center\n"
+        "✓ History Management\n"
+        "✓ Export Reports\n"
+        "✓ Fully On-Device AI"
+    )
+
+    feature_layout.addWidget(feature_title)
+    feature_layout.addWidget(features)
+
+    about_layout.addWidget(feature_card)
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+
+    footer = QFrame()
+    footer.setObjectName("StatusBar")
+
+    footer_layout = QHBoxLayout(footer)
+
+    copyright = QLabel(
+        "© 2026 OMPD • Built for OSDHack 2026"
+    )
+
+    footer_layout.addWidget(copyright)
+    footer_layout.addStretch()
+
+    github = QPushButton("GitHub")
+    license_btn = QPushButton("License")
+
+    footer_layout.addWidget(github)
+    footer_layout.addWidget(license_btn)
+
+    about_layout.addWidget(footer)
+
+    github.clicked.connect(
+        self.open_github
+    )
+
+    license_btn.clicked.connect(
+        self.open_license
     )
 
 def build_right_panel(self):
@@ -743,17 +1860,11 @@ def build_right_panel(self):
 
         group_layout.addWidget(cb)
 
-    self.scan_button = QPushButton("🔍Scan Current Text")
-    self.scan_button.clicked.connect(self.scan_text)
-
     privacy_layout.addWidget(privacy_group)
 
     privacy_layout.addSpacing(10)
 
-    privacy_layout.addWidget(self.scan_button)
-
     right_layout.addWidget(privacy_card)
-    right_layout.addSpacing(8)
 
     # =====================================================
     # LIVE STATS
@@ -877,3 +1988,4 @@ def finish_layout(self):
 
     # Initial status
     self.status.setText("Application Ready")
+    self.refresh_history()

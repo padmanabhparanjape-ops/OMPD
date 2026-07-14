@@ -1,38 +1,169 @@
 import cv2
+from config.device import GPU_ENABLED
 import easyocr
 import re
 
 
 class TextDetector:
 
-    def __init__(self, languages=["en"], gpu=False):
-        self.reader = easyocr.Reader(languages, gpu=gpu)
+    def __init__(self, languages=["en"]):
+
+        self.reader = easyocr.Reader(
+            languages,
+            gpu=GPU_ENABLED
+        )
+
+        print(f"EasyOCR running on: {'GPU' if GPU_ENABLED else 'CPU'}")
 
     def detect(self, frame):
         """
         Detect text in the frame.
-        Returns EasyOCR results.
+        Normalize OCR output.
         """
-        return self.reader.readtext(frame)
+
+        results = self.reader.readtext(frame)
+
+        normalized_results = []
+
+        for bbox, text, confidence in results:
+
+            text = text.strip()
+
+            # Fix common OCR mistakes
+            text = text.replace("_", ".")
+            text = text.replace(",", ".")
+            text = text.replace(";", ".")
+            text = " ".join(text.split())
+
+            normalized_results.append(
+                (bbox, text, confidence)
+            )
+
+        return normalized_results
     
     def is_sensitive(self, text):
 
+        # -----------------------------
+        # Normalize OCR output
+        # -----------------------------
+
         text = text.strip()
 
+        text = text.replace(",", ".")
+        text = text.replace(";", ".")
+        text = text.replace(" ", "")
+
+        # =====================================================
         # Email
-        if re.fullmatch(r'[\w\.-]+@[\w\.-]+\.\w+', text):
+        # =====================================================
+
+        if re.search(
+            r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',
+            text,
+            re.IGNORECASE
+        ):
             return True
 
-        # Phone number (10 digits)
-        if re.fullmatch(r'\d{10}', text):
+        # =====================================================
+        # Phone Number
+        # =====================================================
+
+        digits = re.sub(r"\D", "", text)
+
+        # 10-digit Indian number
+
+        if len(digits) == 10:
             return True
 
-        # Aadhaar (12 digits)
-        if re.fullmatch(r'\d{12}', text):
+        # +91XXXXXXXXXX
+
+        if len(digits) == 12 and digits.startswith("91"):
             return True
 
+        # =====================================================
+        # Aadhaar
+        # =====================================================
+
+        if re.fullmatch(r"\d{12}", digits):
+            return True
+
+        # =====================================================
         # PAN
-        if re.fullmatch(r'[A-Z]{5}[0-9]{4}[A-Z]', text):
+        # =====================================================
+
+        if re.fullmatch(
+            r"[A-Z]{5}[0-9]{4}[A-Z]",
+            text.upper()
+        ):
+            return True
+
+        # =====================================================
+        # Credit / Debit Card
+        # =====================================================
+
+        if 13 <= len(digits) <= 19:
+            return True
+
+        # =====================================================
+        # UPI ID
+        # =====================================================
+
+        if re.search(
+            r"[A-Za-z0-9.\-_]{2,}@[A-Za-z]{2,}",
+            text,
+            re.IGNORECASE
+        ):
+            return True
+
+        # =====================================================
+        # IFSC
+        # =====================================================
+
+        if re.fullmatch(
+            r"[A-Z]{4}0[A-Z0-9]{6}",
+            text.upper()
+        ):
+            return True
+
+        # =====================================================
+        # Passport (Indian)
+        # =====================================================
+
+        if re.fullmatch(
+            r"[A-Z][0-9]{7}",
+            text.upper()
+        ):
+            return True
+
+        # =====================================================
+        # Driving Licence (India)
+        # =====================================================
+
+        if re.fullmatch(
+            r"[A-Z]{2}[0-9]{2}[0-9]{11,13}",
+            text.upper()
+        ):
+            return True
+
+        # =====================================================
+        # Voter ID (EPIC)
+        # =====================================================
+
+        if re.fullmatch(
+            r"[A-Z]{3}[0-9]{7}",
+            text.upper()
+        ):
+            return True
+
+        # =====================================================
+        # URL
+        # =====================================================
+
+        if re.search(
+            r"(https?://|www\.)",
+            text,
+            re.IGNORECASE
+        ):
             return True
 
         return False
