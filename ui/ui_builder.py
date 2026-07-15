@@ -1811,21 +1811,23 @@ def build_right_panel(self):
 
         return frame, value_label
 
-    fps_card, self.fps_value = stat("FPS", "--")
+    
     face_card, self.faces_value = stat("Faces", "0")
     obj_card, self.objects_value = stat("Objects", "0")
     txt_card, self.text_value = stat("Sensitive", "0")
+    barcode_card, self.barcode_value = stat("Barcodes", "0")
     privacy_stat, self.privacy_value = stat("Privacy", "100")
     threat_stat, self.threat_value = stat("Threat", "LOW")
-    barcode_card, self.barcode_value = stat("Barcodes", "0")
 
-    stats_layout.addWidget(fps_card, 0, 0)
-    stats_layout.addWidget(face_card, 0, 1)
-    stats_layout.addWidget(obj_card, 1, 0)
-    stats_layout.addWidget(txt_card, 1, 1)
-    stats_layout.addWidget(privacy_stat, 2, 0)
-    stats_layout.addWidget(threat_stat, 2, 1)
-    stats_layout.addWidget(barcode_card, 3, 0)
+    
+    stats_layout.addWidget(face_card, 0, 0)
+    stats_layout.addWidget(obj_card, 0, 1)
+
+    stats_layout.addWidget(txt_card, 1, 0)
+    stats_layout.addWidget(privacy_stat, 1, 1)
+
+    stats_layout.addWidget(threat_stat, 2, 0)
+    stats_layout.addWidget(barcode_card, 2, 1)
 
     right_layout.addWidget(stats)
     right_layout.addSpacing(8)
