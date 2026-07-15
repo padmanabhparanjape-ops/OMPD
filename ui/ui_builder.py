@@ -647,6 +647,7 @@ def build_activity_page(self):
         "Faces",
         "Objects",
         "Sensitive Text",
+        "Barcodes",
         "Warnings"
     ])
 
@@ -707,10 +708,16 @@ def build_activity_page(self):
         "0"
     )
 
-    stats.addWidget(total_card, 0, 0)
-    stats.addWidget(face_card, 0, 1)
-    stats.addWidget(object_card, 0, 2)
-    stats.addWidget(text_card, 0, 3)
+    barcode_card, self.activity_barcodes = stat_card(
+        "Barcodes",
+        "0"
+    )
+
+    stats.addWidget(total_card,    0, 0)
+    stats.addWidget(face_card,     0, 1)
+    stats.addWidget(object_card,   0, 2)
+    stats.addWidget(text_card,     0, 3)
+    stats.addWidget(barcode_card,  0, 4)
 
     activity_layout.addLayout(stats)
 
@@ -1062,6 +1069,11 @@ def build_analytics_page(self):
         "0"
     )
 
+    barcode_card, self.analytics_barcodes = stat_card(
+        "Barcodes",
+        "0"
+    )
+
     privacy_card, self.analytics_privacy = stat_card(
         "Privacy Score",
         "100"
@@ -1077,8 +1089,10 @@ def build_analytics_page(self):
     stats.addWidget(objects_card,0,2)
 
     stats.addWidget(text_card,1,0)
-    stats.addWidget(privacy_card,1,1)
-    stats.addWidget(fps_card,1,2)
+    stats.addWidget(barcode_card,1,1)
+    stats.addWidget(privacy_card,1,2)
+
+    stats.addWidget(fps_card,2,1)
 
     analytics_layout.addLayout(stats)
 
@@ -1666,7 +1680,7 @@ def build_about_page(self):
         "✓ Real-Time Face Protection\n"
         "✓ Sensitive Object Detection\n"
         "✓ OCR Privacy Protection\n"
-        "✓ QR Code Detection\n"
+        "✓ BarCode Detection\n"
         "✓ GPU Acceleration\n"
         "✓ SQLite Logging\n"
         "✓ Analytics Dashboard\n"
