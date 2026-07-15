@@ -1747,6 +1747,12 @@ def build_right_panel(self):
     self.ocr.clicked.connect(self.toggle_ocr)
     self.barcode_blur.clicked.connect(self.toggle_barcode_blur)
 
+    # NOTE: The Confidence slider (self.conf_slider /
+    # self.conf_slider_label) is still created below so the
+    # rest of the app (reset_settings_clicked,
+    # save_settings_clicked, on_conf_slider_changed, etc.)
+    # keeps working, but it is intentionally NOT added to the
+    # Dashboard's Controls card layout anymore, per request.
     self.conf_slider_label = QLabel(
         f"Confidence : {self.yolo_conf:.2f}"
     )
@@ -1769,6 +1775,7 @@ def build_right_panel(self):
         self.face_blur,
         self.object_blur,
         self.ocr,
+        self.barcode_blur,
     ):
         btn.setMinimumHeight(50)
         btn.setSizePolicy(
@@ -1776,16 +1783,21 @@ def build_right_panel(self):
             QSizePolicy.Fixed
         )
 
-    grid.addWidget(self.camera_button,0,0)
-    grid.addWidget(self.face_blur,0,1)
-    grid.addWidget(self.object_blur,1,0)
-    grid.addWidget(self.ocr,1,1)
-    grid.addWidget(self.barcode_blur,2,0,1,2)
+    # Start Camera is now the big, full-width button
+    # (same size/role the Barcode button used to have).
+    grid.addWidget(self.camera_button,0,0,1,2)
+
+    # Barcode is now a regular half-width button, grouped
+    # with the other toggle buttons.
+    grid.addWidget(self.face_blur,1,0)
+    grid.addWidget(self.object_blur,1,1)
+    grid.addWidget(self.ocr,2,0)
+    grid.addWidget(self.barcode_blur,2,1)
 
     detect_layout.addLayout(grid)
 
-    detect_layout.addWidget(self.conf_slider_label)
-    detect_layout.addWidget(self.conf_slider)
+    # Confidence slider intentionally removed from the
+    # Dashboard page's Controls card.
 
     right_layout.addWidget(detect_card)
     right_layout.addSpacing(8)
@@ -1821,6 +1833,10 @@ def build_right_panel(self):
 
         return frame, value_label
 
+    # NOTE: self.fps_value is still created so update_frame()
+    # in dashboard.py can keep updating it safely, but the FPS
+    # card itself is no longer added to the Dashboard grid
+    # below (removed per request).
     fps_card, self.fps_value = stat("FPS", "--")
     face_card, self.faces_value = stat("Faces", "0")
     obj_card, self.objects_value = stat("Objects", "0")
@@ -1829,13 +1845,12 @@ def build_right_panel(self):
     threat_stat, self.threat_value = stat("Threat", "LOW")
     barcode_card, self.barcode_value = stat("Barcodes", "0")
 
-    stats_layout.addWidget(fps_card, 0, 0)
-    stats_layout.addWidget(face_card, 0, 1)
-    stats_layout.addWidget(obj_card, 1, 0)
-    stats_layout.addWidget(txt_card, 1, 1)
-    stats_layout.addWidget(privacy_stat, 2, 0)
-    stats_layout.addWidget(threat_stat, 2, 1)
-    stats_layout.addWidget(barcode_card, 3, 0)
+    stats_layout.addWidget(face_card, 0, 0)
+    stats_layout.addWidget(obj_card, 0, 1)
+    stats_layout.addWidget(txt_card, 1, 0)
+    stats_layout.addWidget(privacy_stat, 1, 1)
+    stats_layout.addWidget(threat_stat, 2, 0)
+    stats_layout.addWidget(barcode_card, 2, 1)
 
     right_layout.addWidget(stats)
     right_layout.addSpacing(8)
