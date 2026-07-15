@@ -146,8 +146,11 @@ def build_sidebar(self):
     )
 
     self.analytics_btn.clicked.connect(
-        lambda: self.stack.setCurrentWidget(
-            self.analytics_page
+        lambda: (
+            self.update_analytics(),
+            self.stack.setCurrentWidget(
+                self.analytics_page
+            )
         )
     )
 
@@ -348,7 +351,6 @@ def build_scan_page(self):
     header_label.setTextFormat(Qt.RichText)
 
     header_layout.addWidget(header_label)
-
     header_layout.addStretch()
 
     self.scan_health = QLabel("Privacy Health : SAFE")
@@ -359,97 +361,131 @@ def build_scan_page(self):
     scan_layout.addWidget(header_frame)
 
     # =====================================================
-    # BODY
+    # MAIN BODY
     # =====================================================
 
     body = QHBoxLayout()
-    body.setSpacing(5)
-    body.setStretch(0, 7)
-    body.setStretch(1, 2)
+    body.setSpacing(18)
+
+    left_side = QVBoxLayout()
+    left_side.setSpacing(18)
 
     # =====================================================
-    # LEFT PANEL
+    # IMAGE PREVIEW
     # =====================================================
 
     left = QFrame()
     left.setObjectName("Card")
 
     left_layout = QVBoxLayout(left)
-    left_layout.setContentsMargins(10, 10, 10, 10)
+    left_layout.setContentsMargins(12,12,12,12)
     left_layout.setSpacing(10)
 
     self.preview_title = QLabel("🖼 Uploaded Image")
     self.preview_title.setObjectName("CardTitle")
 
     self.scan_preview = QLabel()
-    self.scan_preview.setSizePolicy(
-        QSizePolicy.Expanding,
-        QSizePolicy.Expanding
-    )
-
     self.scan_preview.setObjectName("CameraPreview")
 
-    self.scan_preview.setMinimumSize(900, 700)
+    self.scan_preview.setMinimumHeight(520)
+
+    self.scan_preview.setAlignment(Qt.AlignCenter)
 
     self.scan_preview.setSizePolicy(
         QSizePolicy.Expanding,
         QSizePolicy.Expanding
-    )
-
-    self.scan_preview.setAlignment(
-        Qt.AlignCenter
     )
 
     self.scan_preview.setText(
-        "No image captured.\n\nPress 'Capture & Scan'."
+        "No image captured.\n\nUpload an image or Scan Text."
     )
 
     left_layout.addWidget(self.preview_title)
     left_layout.addWidget(self.scan_preview)
 
-    body.addWidget(left, 7)
+    left_side.addWidget(left,3)
+
+    # =====================================================
+    # RESULTS TABLE
+    # =====================================================
+
+    results_card = QFrame()
+    results_card.setObjectName("Card")
+
+    results_layout = QVBoxLayout(results_card)
+    results_layout.setContentsMargins(12,12,12,12)
+
+    results_title = QLabel("Detected Privacy Risks")
+    results_title.setObjectName("CardTitle")
+
+    self.scan_results = QTableWidget()
+
+    self.scan_results.setColumnCount(4)
+
+    self.scan_results.setHorizontalHeaderLabels([
+        "Category",
+        "Detected Item",
+        "Risk",
+        "Confidence"
+    ])
+
+    self.scan_results.horizontalHeader().setSectionResizeMode(
+        QHeaderView.Stretch
+    )
+
+    self.scan_results.verticalHeader().setVisible(False)
+
+    self.scan_results.setAlternatingRowColors(True)
+
+    self.scan_results.setSelectionBehavior(
+        QTableWidget.SelectRows
+    )
+
+    self.scan_results.setEditTriggers(
+        QTableWidget.NoEditTriggers
+    )
+
+    self.scan_results.setMinimumHeight(220)
+
+    results_layout.addWidget(results_title)
+    results_layout.addWidget(self.scan_results)
+
+    left_side.addWidget(results_card,2)
+
+    body.addLayout(left_side,7)
 
     # =====================================================
     # RIGHT PANEL
     # =====================================================
 
-    right = QWidget()
+    right = QFrame()
+    right.setObjectName("Card")
 
-    right.setMaximumWidth(320)
+    right.setMinimumWidth(340)
+    right.setMaximumWidth(360)
 
     right_layout = QVBoxLayout(right)
 
-    health_title = QLabel("Privacy Analysis")
+    right_layout.setContentsMargins(15,15,15,15)
+    right_layout.setSpacing(16)
+
+    health_title = QLabel("📊 Privacy Analysis")
     health_title.setObjectName("CardTitle")
 
     right_layout.addWidget(health_title)
 
-    right_layout.addSpacing(12)
-
     # =====================================================
-    # ACTION BUTTONS
+    # BUTTONS
     # =====================================================
-    
-    self.scan_text_button = QPushButton(
-        "📄 Scan Text"
-    )
 
-    self.upload_button = QPushButton(
-        "🖼 Upload Image"
-    )
+    self.scan_text_button = QPushButton("📄 Scan Text")
+    self.upload_button = QPushButton("🖼 Upload Image")
+    self.save_button = QPushButton("💾 Save Safe Image")
+    self.report_button = QPushButton("📋 Export Report")
 
-    self.save_button = QPushButton(
-        "💾 Save Safe Image"
-    )
-
-    self.report_button = QPushButton(
-        "📋 Export Report"
-    )
-
-    buttons = QVBoxLayout()
-
-    buttons.setContentsMargins(8, 0, 8, 0)
-    buttons.setSpacing(10)
+    button_grid = QGridLayout()
+    button_grid.setHorizontalSpacing(10)
+    button_grid.setVerticalSpacing(10)
 
     for btn in (
         self.scan_text_button,
@@ -457,21 +493,23 @@ def build_scan_page(self):
         self.save_button,
         self.report_button
     ):
-        btn.setFixedHeight(42)
-        btn.setMinimumWidth(0)
+
+        btn.setMinimumHeight(48)
+
         btn.setSizePolicy(
-            QSizePolicy.Preferred,
+            QSizePolicy.Expanding,
             QSizePolicy.Fixed
         )
 
-        buttons.addWidget(btn)
+    button_grid.addWidget(self.scan_text_button,0,0)
+    button_grid.addWidget(self.upload_button,0,1)
+    button_grid.addWidget(self.save_button,1,0)
+    button_grid.addWidget(self.report_button,1,1)
 
-    right_layout.addLayout(buttons)
-
-    right_layout.addSpacing(25)
+    right_layout.addLayout(button_grid)
 
     # =====================================================
-    # PRIVACY HEALTH
+    # PRIVACY STATUS
     # =====================================================
 
     self.scan_score = QLabel("Privacy Score : 100")
@@ -482,26 +520,18 @@ def build_scan_page(self):
     right_layout.addWidget(self.scan_score)
     right_layout.addWidget(self.scan_threat)
 
-    right_layout.addSpacing(15)
-
-    self.scan_sensitive = QLabel("📄 Sensitive : 0")
-    self.scan_time = QLabel("🕒 Last Scan : --")
-
     stats_card = QFrame()
     stats_card.setObjectName("Card")
 
     stats = QGridLayout(stats_card)
 
-    stats.setContentsMargins(12,12,12,12)
-    stats.setHorizontalSpacing(18)
-    stats.setVerticalSpacing(12)
+    self.scan_sensitive = QLabel("📄 Sensitive : 0")
+    self.scan_time = QLabel("🕒 Last Scan : --")
 
-    stats.addWidget(self.scan_sensitive,1,0)
-    stats.addWidget(self.scan_time,1,1)
+    stats.addWidget(self.scan_sensitive,0,0)
+    stats.addWidget(self.scan_time,0,1)
 
     right_layout.addWidget(stats_card)
-
-    right_layout.addSpacing(20)
 
     # =====================================================
     # AI RECOMMENDATION
@@ -519,78 +549,25 @@ def build_scan_page(self):
 
     self.scan_recommendation.setReadOnly(True)
 
-    self.scan_recommendation.setFixedHeight(120)
+    self.scan_recommendation.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
 
     self.scan_recommendation.setText(
         "Capture or upload an image to begin the privacy analysis."
     )
 
-    recommendation_layout.addWidget(
-        recommendation_title
-    )
-
-    recommendation_layout.addWidget(
-        self.scan_recommendation
-    )
+    recommendation_layout.addWidget(recommendation_title)
+    recommendation_layout.addWidget(self.scan_recommendation)
 
     right_layout.addWidget(recommendation)
 
     right_layout.addStretch()
 
-    body.addWidget(right, 2)
+    body.addWidget(right,3)
 
-    scan_layout.addLayout(body,1)
-    # =====================================================
-    # OCR RESULTS
-    # =====================================================
-
-    results_card = QFrame()
-    results_card.setObjectName("Card")
-
-    results_layout = QVBoxLayout(results_card)
-
-    results_title = QLabel("Detected Privacy Risks")
-    results_title.setObjectName("CardTitle")
-
-    self.scan_results = QTableWidget()
-
-    self.scan_results.setColumnCount(4)
-
-    self.scan_results.setHorizontalHeaderLabels([
-        "Category",
-        "Detected Item",
-        "Risk",
-        "Confidence"
-    ])
-
-    self.scan_results.horizontalHeader().setStretchLastSection(True)
-
-    self.scan_results.horizontalHeader().setSectionResizeMode(
-        QHeaderView.Stretch
-    )
-
-    self.scan_results.verticalHeader().setVisible(False)
-
-    self.scan_results.setAlternatingRowColors(True)
-
-    self.scan_results.setEditTriggers(
-        QTableWidget.NoEditTriggers
-    )
-
-    self.scan_results.setSelectionBehavior(
-        QTableWidget.SelectRows
-    )
-
-    self.scan_results.setMinimumHeight(150)
-    self.scan_results.setSizePolicy(
-        QSizePolicy.Expanding,
-        QSizePolicy.Expanding
-    )
-
-    results_layout.addWidget(results_title)
-    results_layout.addWidget(self.scan_results)
-
-    scan_layout.addWidget(results_card, 1)
+    scan_layout.addLayout(body)
 
     # =====================================================
     # CONNECTIONS
@@ -599,6 +576,7 @@ def build_scan_page(self):
     self.scan_text_button.clicked.connect(
         self.scan_text
     )
+
     self.upload_button.clicked.connect(
         self.upload_image
     )
@@ -756,7 +734,7 @@ def build_activity_page(self):
         "Live detections will appear here..."
     )
 
-    self.activity_log.setMinimumHeight(420)
+    self.activity_log.setMinimumHeight(300)
 
     log_layout.addWidget(log_title)
     log_layout.addWidget(self.activity_log)
@@ -995,7 +973,7 @@ def build_analytics_page(self):
     analytics_layout = QVBoxLayout(self.analytics_page)
 
     analytics_layout.setContentsMargins(20, 20, 20, 20)
-    analytics_layout.setSpacing(20)
+    analytics_layout.setSpacing(10)
 
     # =====================================================
     # HEADER
@@ -1032,21 +1010,31 @@ def build_analytics_page(self):
     # =====================================================
 
     stats = QGridLayout()
-    stats.setHorizontalSpacing(15)
-    stats.setVerticalSpacing(15)
+    stats.setHorizontalSpacing(20)
+    stats.setVerticalSpacing(20)
 
     def stat_card(title, value):
 
         card = QFrame()
         card.setObjectName("StatCard")
-        card.setMinimumHeight(95)
+        card.setMinimumHeight(85)
+        card.setMinimumWidth(140)
+        card.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Fixed
+        )
 
         layout = QVBoxLayout(card)
 
+        layout.setContentsMargins(18,18,18,18)
+        layout.setSpacing(10)
+
         value_label = QLabel(value)
+        value_label.setAlignment(Qt.AlignCenter)
         value_label.setObjectName("StatValue")
 
         title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignCenter)
         title_label.setObjectName("StatLabel")
 
         layout.addWidget(value_label)
@@ -1104,6 +1092,12 @@ def build_analytics_page(self):
     # Detection Trend
 
     trend_card = QFrame()
+    trend_card.setMinimumHeight(100)
+
+    trend_card.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
     trend_card.setObjectName("Card")
 
     trend_layout = QVBoxLayout(trend_card)
@@ -1128,6 +1122,12 @@ def build_analytics_page(self):
     # Object Distribution
 
     object_card = QFrame()
+    object_card.setMinimumHeight(100)
+
+    object_card.setSizePolicy(
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
     object_card.setObjectName("Card")
 
     object_layout = QVBoxLayout(object_card)
@@ -1160,7 +1160,11 @@ def build_analytics_page(self):
 
     system_layout = QGridLayout(system_card)
 
-    system_layout.setContentsMargins(15,15,15,15)
+    system_layout.setContentsMargins(20,20,20,20)
+
+    system_layout.setHorizontalSpacing(40)
+
+    system_layout.setVerticalSpacing(18)
 
     self.device_info = QLabel("AI Device : CUDA")
     self.model_info = QLabel("Model : YOLOv8n")
@@ -1196,7 +1200,7 @@ def build_analytics_page(self):
 
     self.analytics_insights.setReadOnly(True)
 
-    self.analytics_insights.setMinimumHeight(160)
+    self.analytics_insights.setMinimumHeight(120)
 
     self.analytics_insights.setText(
         "AI insights will appear here.\n\n"
@@ -1226,6 +1230,8 @@ def build_analytics_page(self):
 
     footer_layout.addWidget(self.analytics_footer)
     footer_layout.addStretch()
+
+    analytics_layout.addSpacing(10)
 
     analytics_layout.addWidget(footer)
 
@@ -1312,38 +1318,6 @@ def build_settings_page(self):
     container_layout.addWidget(camera_card)
 
     # =====================================================
-    # AI SETTINGS
-    # =====================================================
-
-    ai_card = QFrame()
-    ai_card.setObjectName("Card")
-
-    ai_layout = QVBoxLayout(ai_card)
-
-    ai_title = QLabel("🧠 AI Detection")
-    ai_title.setObjectName("CardTitle")
-
-    self.settings_face = QCheckBox("Enable Face Blur")
-    self.settings_face.setChecked(True)
-
-    self.settings_object = QCheckBox("Enable Object Blur")
-    self.settings_object.setChecked(True)
-
-    self.settings_ocr = QCheckBox("Enable OCR")
-    self.settings_ocr.setChecked(True)
-
-    self.settings_gpu = QCheckBox("Use GPU (CUDA)")
-    self.settings_gpu.setChecked(True)
-
-    ai_layout.addWidget(ai_title)
-    ai_layout.addWidget(self.settings_face)
-    ai_layout.addWidget(self.settings_object)
-    ai_layout.addWidget(self.settings_ocr)
-    ai_layout.addWidget(self.settings_gpu)
-
-    container_layout.addWidget(ai_card)
-
-    # =====================================================
     # PERFORMANCE
     # =====================================================
 
@@ -1364,6 +1338,9 @@ def build_settings_page(self):
     self.settings_conf_slider.setValue(
         int(self.yolo_conf*100)
     )
+    self.settings_conf_slider.valueChanged.connect(
+        self.settings_confidence_changed
+    )
 
     self.settings_blur = QLabel(
         f"Blur Strength : {self.blur_strength}"
@@ -1374,6 +1351,9 @@ def build_settings_page(self):
     self.settings_blur_slider.setValue(
         self.blur_strength
     )
+    self.settings_blur_slider.valueChanged.connect(
+        self.settings_blur_changed
+    )
 
     performance_layout.addWidget(performance_title)
     performance_layout.addWidget(self.settings_confidence)
@@ -1381,6 +1361,55 @@ def build_settings_page(self):
     performance_layout.addSpacing(10)
     performance_layout.addWidget(self.settings_blur)
     performance_layout.addWidget(self.settings_blur_slider)
+
+    performance_layout.addSpacing(20)
+
+    privacy_group = QGroupBox("Sensitive Objects")
+
+    group_layout = QGridLayout(privacy_group)
+
+    group_layout.setHorizontalSpacing(25)
+    group_layout.setVerticalSpacing(8)
+
+    self.settings_object_checkboxes = {}
+
+    row = 0
+    col = 0
+
+    for obj in self.yolo.sensitive_objects:
+
+        cb = QCheckBox(obj)
+
+        cb.setChecked(
+            self.yolo.sensitive_objects[obj]
+        )
+
+        cb.stateChanged.connect(
+            lambda state, name=obj:
+            self.on_sensitive_class_toggled(
+                name,
+                state
+            )
+        )
+
+        self.settings_object_checkboxes[obj] = cb
+
+        group_layout.addWidget(
+            cb,
+            row,
+            col
+        )
+
+        col += 1
+
+        if col == 2:
+
+            row += 1
+            col = 0
+
+    performance_layout.addWidget(
+        privacy_group
+    )
 
     container_layout.addWidget(performance_card)
 
@@ -1414,41 +1443,6 @@ def build_settings_page(self):
     db_layout.addWidget(self.clear_database)
 
     container_layout.addWidget(db_card)
-
-    # =====================================================
-    # APPLICATION
-    # =====================================================
-
-    app_card = QFrame()
-    app_card.setObjectName("Card")
-
-    app_layout = QVBoxLayout(app_card)
-
-    app_title = QLabel("🖥 Application")
-    app_title.setObjectName("CardTitle")
-
-    self.dark_mode = QCheckBox("Dark Theme")
-    self.dark_mode.setChecked(True)
-
-    self.notifications = QCheckBox(
-        "Enable Notifications"
-    )
-
-    self.auto_start = QCheckBox(
-        "Start Camera Automatically"
-    )
-
-    self.auto_save = QCheckBox(
-        "Auto Save Protected Images"
-    )
-
-    app_layout.addWidget(app_title)
-    app_layout.addWidget(self.dark_mode)
-    app_layout.addWidget(self.notifications)
-    app_layout.addWidget(self.auto_start)
-    app_layout.addWidget(self.auto_save)
-
-    container_layout.addWidget(app_card)
 
     # =====================================================
     # SAVE / RESET
@@ -1498,8 +1492,8 @@ def build_about_page(self):
 
     about_layout = QVBoxLayout(self.about_page)
 
-    about_layout.setContentsMargins(20,20,20,20)
-    about_layout.setSpacing(20)
+    about_layout.setContentsMargins(20, 20, 20, 20)
+    about_layout.setSpacing(18)
 
     # =====================================================
     # HEADER
@@ -1509,7 +1503,7 @@ def build_about_page(self):
     header.setObjectName("TopBar")
 
     header_layout = QHBoxLayout(header)
-    header_layout.setContentsMargins(15,10,15,10)
+    header_layout.setContentsMargins(15, 10, 15, 10)
 
     title = QLabel(
         "ℹ About OMPD   "
@@ -1532,13 +1526,19 @@ def build_about_page(self):
     about_layout.addWidget(header)
 
     # =====================================================
-    # PROJECT CARD
+    # TOP SECTION
     # =====================================================
+
+    top = QHBoxLayout()
+    top.setSpacing(18)
+
+    # -----------------------------------------------------
 
     project_card = QFrame()
     project_card.setObjectName("Card")
 
     project_layout = QVBoxLayout(project_card)
+    project_layout.setContentsMargins(18,18,18,18)
 
     logo = QLabel("🛡")
     logo.setAlignment(Qt.AlignCenter)
@@ -1548,25 +1548,31 @@ def build_about_page(self):
     project_name.setObjectName("Title")
     project_name.setAlignment(Qt.AlignCenter)
 
-    subtitle = QLabel("On-Device Privacy Monitoring & Detection")
+    subtitle = QLabel(
+        "On-Device Privacy Monitoring & Detection"
+    )
     subtitle.setAlignment(Qt.AlignCenter)
 
     description = QTextEdit()
     description.setReadOnly(True)
-    description.setMinimumHeight(130)
+    description.setMinimumHeight(210)
 
     description.setText(
-        "OMPD is an AI-powered privacy protection application "
-        "that detects and protects sensitive information in "
-        "real time using completely on-device inference.\n\n"
+        "OMPD protects user privacy using "
+        "completely on-device AI.\n\n"
 
-        "The application automatically detects:\n"
-        "• Human Faces\n"
-        "• Sensitive Objects\n"
-        "• Sensitive Text\n"
-        "• QR Codes\n\n"
+        "Features include:\n\n"
 
-        "All processing occurs locally to preserve user privacy."
+        "• Face Detection & Blur\n"
+        "• Sensitive Object Detection\n"
+        "• OCR-Based Privacy Detection\n"
+        "• QR Code Detection\n"
+        "• Privacy Analytics\n"
+        "• Activity Logging\n"
+        "• History Management\n\n"
+
+        "No cloud processing.\n"
+        "Everything stays on your device."
     )
 
     project_layout.addWidget(logo)
@@ -1575,52 +1581,54 @@ def build_about_page(self):
     project_layout.addSpacing(10)
     project_layout.addWidget(description)
 
-    about_layout.addWidget(project_card)
+    top.addWidget(project_card,3)
 
-    # =====================================================
-    # TECHNOLOGY
-    # =====================================================
+    # -----------------------------------------------------
 
     tech_card = QFrame()
     tech_card.setObjectName("Card")
 
     tech_layout = QGridLayout(tech_card)
+    tech_layout.setContentsMargins(18,18,18,18)
+    tech_layout.setHorizontalSpacing(30)
+    tech_layout.setVerticalSpacing(14)
 
-    tech_layout.setContentsMargins(15,15,15,15)
+    rows = [
+        ("YOLO Model","YOLOv8n"),
+        ("OCR Engine","EasyOCR"),
+        ("Face Detection","MediaPipe"),
+        ("GUI","PySide6"),
+        ("Computer Vision","OpenCV"),
+        ("AI Runtime","PyTorch CUDA"),
+        ("Database","SQLite")
+    ]
 
-    tech_layout.addWidget(QLabel("YOLO Model"),0,0)
-    tech_layout.addWidget(QLabel("YOLOv8n"),0,1)
+    for r,(k,v) in enumerate(rows):
 
-    tech_layout.addWidget(QLabel("OCR Engine"),1,0)
-    tech_layout.addWidget(QLabel("EasyOCR"),1,1)
+        tech_layout.addWidget(QLabel(k),r,0)
+        tech_layout.addWidget(QLabel(v),r,1)
 
-    tech_layout.addWidget(QLabel("Face Detection"),2,0)
-    tech_layout.addWidget(QLabel("MediaPipe"),2,1)
+    top.addWidget(tech_card,2)
 
-    tech_layout.addWidget(QLabel("GUI"),3,0)
-    tech_layout.addWidget(QLabel("PySide6"),3,1)
-
-    tech_layout.addWidget(QLabel("Computer Vision"),4,0)
-    tech_layout.addWidget(QLabel("OpenCV"),4,1)
-
-    tech_layout.addWidget(QLabel("AI Runtime"),5,0)
-    tech_layout.addWidget(QLabel("PyTorch CUDA"),5,1)
-
-    tech_layout.addWidget(QLabel("Database"),6,0)
-    tech_layout.addWidget(QLabel("SQLite"),6,1)
-
-    about_layout.addWidget(tech_card)
+    about_layout.addLayout(top)
 
     # =====================================================
-    # SYSTEM
+    # LOWER SECTION
     # =====================================================
+
+    bottom = QHBoxLayout()
+    bottom.setSpacing(18)
+
+    # -----------------------------------------------------
 
     system_card = QFrame()
     system_card.setObjectName("Card")
 
     system_layout = QGridLayout(system_card)
 
-    system_layout.setContentsMargins(15,15,15,15)
+    system_layout.setContentsMargins(18,18,18,18)
+    system_layout.setHorizontalSpacing(35)
+    system_layout.setVerticalSpacing(14)
 
     self.about_gpu = QLabel("GPU : NVIDIA RTX 4050")
     self.about_device = QLabel("Device : CUDA")
@@ -1638,28 +1646,26 @@ def build_about_page(self):
     system_layout.addWidget(self.about_database,2,0)
     system_layout.addWidget(self.about_runtime,2,1)
 
-    about_layout.addWidget(system_card)
+    bottom.addWidget(system_card)
 
-    # =====================================================
-    # FEATURES
-    # =====================================================
+    # -----------------------------------------------------
 
     feature_card = QFrame()
     feature_card.setObjectName("Card")
 
     feature_layout = QVBoxLayout(feature_card)
+    feature_layout.setContentsMargins(18,18,18,18)
 
     feature_title = QLabel("Features")
     feature_title.setObjectName("CardTitle")
 
     features = QTextEdit()
     features.setReadOnly(True)
-    features.setMinimumHeight(170)
 
     features.setText(
         "✓ Real-Time Face Protection\n"
         "✓ Sensitive Object Detection\n"
-        "✓ OCR-Based Privacy Protection\n"
+        "✓ OCR Privacy Protection\n"
         "✓ QR Code Detection\n"
         "✓ GPU Acceleration\n"
         "✓ SQLite Logging\n"
@@ -1674,7 +1680,9 @@ def build_about_page(self):
     feature_layout.addWidget(feature_title)
     feature_layout.addWidget(features)
 
-    about_layout.addWidget(feature_card)
+    bottom.addWidget(feature_card)
+
+    about_layout.addLayout(bottom)
 
     # =====================================================
     # FOOTER
@@ -1689,24 +1697,18 @@ def build_about_page(self):
         "© 2026 OMPD • Built for OSDHack 2026"
     )
 
-    footer_layout.addWidget(copyright)
-    footer_layout.addStretch()
-
     github = QPushButton("GitHub")
     license_btn = QPushButton("License")
 
+    footer_layout.addWidget(copyright)
+    footer_layout.addStretch()
     footer_layout.addWidget(github)
     footer_layout.addWidget(license_btn)
 
     about_layout.addWidget(footer)
 
-    github.clicked.connect(
-        self.open_github
-    )
-
-    license_btn.clicked.connect(
-        self.open_license
-    )
+    github.clicked.connect(self.open_github)
+    license_btn.clicked.connect(self.open_license)
 
 def build_right_panel(self):
 
@@ -1720,51 +1722,6 @@ def build_right_panel(self):
     right_layout.setSpacing(15)
 
     # =====================================================
-    # CAMERA CONTROLS
-    # =====================================================
-
-    camera_card = QFrame()
-    camera_card.setSizePolicy(
-    QSizePolicy.Expanding,
-    QSizePolicy.Expanding
-)
-    camera_card.setObjectName("Card")
-
-    camera_layout = QVBoxLayout(camera_card)
-    camera_layout.setSpacing(10)
-
-    title = QLabel("Camera Controls")
-    title.setObjectName("CardTitle")
-
-    self.camera_selector = QComboBox()
-    self.camera_selector.addItems([
-        "Camera 0",
-        "Camera 1",
-    ])
-
-    self.resolution_selector = QComboBox()
-    self.resolution_selector.addItems([
-        "640 × 480",
-        "1280 × 720",
-        "1920 × 1080",
-    ])
-
-    self.start_button = QPushButton("▶ Start Camera")
-    self.stop_button = QPushButton("■ Stop Camera")
-
-    self.start_button.clicked.connect(self.start_camera)
-    self.stop_button.clicked.connect(self.stop_camera)
-
-    camera_layout.addWidget(title)
-    camera_layout.addWidget(self.camera_selector)
-    camera_layout.addWidget(self.resolution_selector)
-    camera_layout.addWidget(self.start_button)
-    camera_layout.addWidget(self.stop_button)
-
-    right_layout.addWidget(camera_card)
-    right_layout.addSpacing(8)
-
-    # =====================================================
     # DETECTION
     # =====================================================
 
@@ -1774,97 +1731,48 @@ def build_right_panel(self):
     detect_layout = QVBoxLayout(detect_card)
     detect_layout.setSpacing(8)
 
-    detect_title = QLabel("Detection")
+    detect_title = QLabel("🎛 Controls")
     detect_title.setObjectName("CardTitle")
 
-    self.face_blur = QPushButton("Face Blur : ON")
-    self.object_blur = QPushButton("Object Blur : ON")
-    self.ocr = QPushButton("OCR : ON")
+    detect_layout.addWidget(detect_title)
 
+    grid = QGridLayout()
+    grid.setHorizontalSpacing(10)
+    grid.setVerticalSpacing(10)
+
+    self.camera_button = QPushButton(" Start Camera")
+    self.face_blur = QPushButton(" Face : ON")
+    self.object_blur = QPushButton(" Object : ON")
+    self.ocr = QPushButton(" OCR : ON")
+
+    self.camera_button.clicked.connect(self.toggle_camera)
     self.face_blur.clicked.connect(self.toggle_face_blur)
     self.object_blur.clicked.connect(self.toggle_object_blur)
     self.ocr.clicked.connect(self.toggle_ocr)
 
-    self.conf_slider_label = QLabel(
-        f"Confidence : {self.yolo_conf:.2f}"
-    )
+    for btn in (
+        self.camera_button,
+        self.face_blur,
+        self.object_blur,
+        self.ocr,
+    ):
 
-    self.conf_slider = QSlider(Qt.Horizontal)
-    self.conf_slider.setRange(0, 100)
-    self.conf_slider.setValue(int(self.yolo_conf * 100))
-    self.conf_slider.valueChanged.connect(
-        self.on_conf_slider_changed
-    )
+        btn.setMinimumHeight(50)
 
-    detect_layout.addWidget(detect_title)
-    detect_layout.addWidget(self.face_blur)
-    detect_layout.addWidget(self.object_blur)
-    detect_layout.addWidget(self.ocr)
-    detect_layout.addWidget(self.conf_slider_label)
-    detect_layout.addWidget(self.conf_slider)
+        btn.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Fixed
+        )
+
+    grid.addWidget(self.camera_button, 0, 0)
+    grid.addWidget(self.face_blur, 0, 1)
+    grid.addWidget(self.object_blur, 1, 0)
+    grid.addWidget(self.ocr, 1, 1)
+
+    detect_layout.addLayout(grid)
 
     right_layout.addWidget(detect_card)
     right_layout.addSpacing(8)
-
-    # =====================================================
-    # PRIVACY
-    # =====================================================
-
-    privacy_card = QFrame()
-    privacy_card.setObjectName("Card")
-
-    privacy_layout = QVBoxLayout(privacy_card)
-    privacy_layout.setSpacing(8)
-
-    privacy_title = QLabel("Privacy")
-    privacy_title.setObjectName("CardTitle")
-
-    self.blur_slider_label = QLabel(
-        f"Blur Strength : {self.blur_strength}"
-    )
-
-    self.blur_slider = QSlider(Qt.Horizontal)
-    self.blur_slider.setRange(1, 100)
-    self.blur_slider.setValue(self.blur_strength)
-    self.blur_slider.valueChanged.connect(
-        self.on_blur_slider_changed
-    )
-
-    privacy_layout.addWidget(privacy_title)
-    privacy_layout.addWidget(self.blur_slider_label)
-    privacy_layout.addWidget(self.blur_slider)
-    privacy_group = QGroupBox("Sensitive Objects")
-    privacy_group.setCheckable(True)
-    privacy_group.setChecked(True)
-    privacy_group.setFlat(False)
-
-    group_layout = QVBoxLayout(privacy_group)
-
-    self.object_checkboxes = {}
-
-    for obj in self.yolo.sensitive_objects:
-
-        cb = QCheckBox(obj)
-
-        cb.setChecked(self.yolo.sensitive_objects[obj])
-
-        cb.stateChanged.connect(
-            lambda state, name=obj:
-            self.on_sensitive_class_toggled(
-                name,
-                state
-            )
-        )
-
-        self.object_checkboxes[obj] = cb
-
-        group_layout.addWidget(cb)
-
-    privacy_layout.addWidget(privacy_group)
-
-    privacy_layout.addSpacing(10)
-
-    right_layout.addWidget(privacy_card)
 
     # =====================================================
     # LIVE STATS
@@ -1989,3 +1897,5 @@ def finish_layout(self):
     # Initial status
     self.status.setText("Application Ready")
     self.refresh_history()
+    self.refresh_activity()
+    self.update_analytics()

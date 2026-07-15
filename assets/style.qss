@@ -27,10 +27,15 @@ QFrame {
     border: none;
 }
 
-#Card {
-    background: #1E293B;
-    border: 1px solid #2F3B52;
-    border-radius: 18px;
+#Card{
+
+    background:#1E293B;
+
+    border:1px solid #334155;
+
+    border-radius:18px;
+
+    padding:12px;
 }
 
 /* ==========================================================
@@ -94,9 +99,10 @@ QPushButton {
     min-height: 48px;
     max-height: 48px;
 
-    padding: 0 18px;
+    margin-top:6px;
+    margin-bottom:6px;
 
-    margin: 2px 0;
+    padding:12px 18px;
 
     font-weight: 600;
 }
@@ -116,6 +122,11 @@ QPushButton:disabled {
     background: #374151;
 
     color: #94A3B8;
+}
+
+QPushButton:focus {
+
+    outline: none;
 }
 
 /* ==========================================================
@@ -262,25 +273,26 @@ QCheckBox {
 QCheckBox::indicator {
 
     width: 18px;
-
     height: 18px;
 
     margin-right: 10px;
 
-    border-radius: 5px;
+    border: 2px solid #475569;
+    border-radius: 4px;
+
+    background: #111827;      /* Same as app background */
+}
+
+QCheckBox::indicator:hover {
 
     border: 2px solid #64748B;
-
-    background: #1E293B;
 }
 
 QCheckBox::indicator:checked {
 
-    background: #2563EB;
-
-    border: 2px solid #2563EB;
+    background: #10B981;
+    border: 2px solid #10B981;
 }
-
 /* ==========================================================
    Combo Boxes
    ========================================================== */

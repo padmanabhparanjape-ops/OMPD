@@ -2,6 +2,7 @@ import sys
 import time
 import cv2
 import csv
+import webbrowser
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -94,7 +95,17 @@ class Dashboard(QWidget):
         # Build Interface
         # ===============================
         build_ui(self)
-    
+
+    def toggle_camera(self):
+
+        if self.timer.isActive():
+
+            self.stop_camera()
+
+        else:
+
+            self.start_camera()
+
     # ======================================================
     # CAMERA START
     # ======================================================
@@ -103,16 +114,45 @@ class Dashboard(QWidget):
 
         try:
 
+            if self.camera_device is not None:
+
+                self.camera_device.stop()
+
+            resolution = self.settings_resolution.currentText()
+
+            if resolution == "640 × 480":
+
+                width = 640
+                height = 480
+
+            elif resolution == "1280 × 720":
+
+                width = 1280
+                height = 720
+
+            else:
+
+                width = 1920
+                height = 1080
+            self.camera_device = Camera(
+                camera_index=0,
+                width=width,
+                height=height
+            )
+
             self.camera_device.start()
 
             self.session_start = time.time()
             self.session_frames = 0
-
             self.frame_counter = 0
 
             self.camera_status.setText("● Live")
             self.status.setText("Camera Started")
             self.session_info.setText("Session Running")
+
+            self.camera_button.setText(
+                " Stop Camera"
+            )
 
             self.logs.append("Camera Started")
 
@@ -120,9 +160,15 @@ class Dashboard(QWidget):
 
         except Exception as e:
 
-            self.logs.append(f"Failed to start camera : {e}")
+            self.logs.append(
+                f"Failed to start camera : {e}"
+            )
+
             self.status.setText("Camera Error")
 
+            self.status.setText(
+                f"Camera Started ({width}×{height})"
+            )
     # ======================================================
     # CAMERA STOP
     # ======================================================
@@ -152,6 +198,10 @@ class Dashboard(QWidget):
             self.logs.append(
                 f"Session Duration : {duration}s"
             )
+
+        self.camera_button.setText(
+            " Start Camera"
+        )
 
     # ======================================================
     # UPDATE FPS
@@ -317,14 +367,6 @@ class Dashboard(QWidget):
                 # Remove text that disappeared
                 self.logged_text.intersection_update(current_text)
 
-                for bbox, text, confidence in self._cached_text:
-                    if self.text_detector.is_sensitive(text):
-                        self.db.log_detection(
-                            "Sensitive Text",
-                            text,
-                            confidence
-                        )
-
             frame = self.text_detector.blur_text(
                 frame,
                 self._cached_text,
@@ -420,6 +462,7 @@ class Dashboard(QWidget):
         if self.frame_counter % 15 == 0:
 
             self.refresh_activity()
+            self.update_analytics()
 
         # -----------------------------------------
         # DISPLAY IMAGE
@@ -464,11 +507,27 @@ class Dashboard(QWidget):
 
             return
 
+        # Clear both log views
         self.logs.clear()
+        self.activity_log.clear()
 
-        for log in reversed(logs):
+        faces = 0
+        objects = 0
+        texts = 0
 
-            timestamp, event, label, confidence = log
+        for timestamp, event, label, confidence in reversed(logs):
+
+            if event == "Face":
+
+                faces += 1
+
+            elif event == "Sensitive Object":
+
+                objects += 1
+
+            elif event == "Sensitive Text":
+
+                texts += 1
 
             if confidence >= 0.90:
 
@@ -482,20 +541,35 @@ class Dashboard(QWidget):
 
                 icon = "🟩"
 
-            self.logs.append(
+            message = f"""
+    {icon} {event}
 
-                f"""
-{icon} {event}
+    Object : {label}
 
-Object : {label}
+    Confidence : {confidence:.2f}
 
-Confidence : {confidence:.2f}
+    Time : {timestamp}
 
-Time : {timestamp}
+    ──────────────────────────────
+    """
 
-──────────────────────────────
-"""
-            )
+            # Dashboard log
+            self.logs.append(message)
+
+            # Activity Center log
+            self.activity_log.append(message)
+
+        # Update Activity statistics
+        self.activity_total.setText(str(len(logs)))
+        self.activity_faces.setText(str(faces))
+        self.activity_objects.setText(str(objects))
+        self.activity_text.setText(str(texts))
+
+        self.activity_status.setText("Monitoring")
+
+        self.activity_footer.setText(
+            f"Last Updated : {time.strftime('%H:%M:%S')}"
+        )
 
     # ======================================================
     # BLUR SLIDER
@@ -1231,33 +1305,226 @@ Time : {timestamp}
             self.capture_button.setEnabled(True)
 
     def clear_activity(self):
-        pass
+        """
+        Clear the Activity Center display.
+        Does NOT delete the database.
+        """
+
+        self.activity_log.clear()
+
+        self.activity_total.setText("0")
+        self.activity_faces.setText("0")
+        self.activity_objects.setText("0")
+        self.activity_text.setText("0")
+
+        self.activity_footer.setText("Activity log cleared.")
+
+        self.activity_status.setText("Idle")
+
+        self.logs.append("🗑 Activity Center cleared.")
+
+        self.status.setText("Activity Center cleared.")
 
     def export_activity(self):
-        pass
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Activity",
+            "activity_log.csv",
+            "CSV Files (*.csv)"
+        )
+
+        if not file_name:
+            return
+
+        try:
+
+            logs = self.db.get_recent_logs()
+
+            with open(file_name, "w", newline="", encoding="utf-8") as file:
+
+                writer = csv.writer(file)
+
+                writer.writerow([
+                    "Timestamp",
+                    "Category",
+                    "Detected Item",
+                    "Confidence"
+                ])
+
+                for timestamp, category, label, confidence in logs:
+
+                    writer.writerow([
+                        timestamp,
+                        category,
+                        label,
+                        f"{confidence:.2f}"
+                    ])
+
+            self.activity_footer.setText(
+                f"Exported to {Path(file_name).name}"
+            )
+
+            self.logs.append(
+                f"📄 Activity exported:\n{file_name}"
+            )
+
+            self.status.setText(
+                "Activity exported successfully."
+            )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Activity export failed: {e}"
+            )
+
+            self.status.setText(
+                "Failed to export activity."
+            )
 
     def search_activity(self):
-        pass
+
+        search = self.activity_search.text().lower().strip()
+
+        document = self.activity_log.document()
+
+        cursor = document.find(search)
+
+        if search == "":
+
+            self.activity_log.moveCursor(
+                self.activity_log.textCursor().Start
+            )
+
+            self.activity_footer.setText(
+                "Showing all activity."
+            )
+
+            return
+
+        if cursor.isNull():
+
+            self.activity_footer.setText(
+                "No matching activity found."
+            )
+
+            return
+
+        self.activity_log.setTextCursor(cursor)
+
+        self.activity_log.ensureCursorVisible()
+
+        self.activity_footer.setText(
+            f"Showing results for '{search}'"
+        )
 
     def filter_activity(self):
-        pass
+
+        selected = self.activity_filter.currentText()
+
+        try:
+
+            logs = self.db.get_recent_logs()
+
+        except Exception:
+
+            return
+
+        self.activity_log.clear()
+
+        total = 0
+        faces = 0
+        objects = 0
+        texts = 0
+
+        for timestamp, category, label, confidence in reversed(logs):
+
+            show = False
+
+            if selected == "All":
+                show = True
+
+            elif selected == "Faces" and category == "Face":
+                show = True
+
+            elif selected == "Objects" and category == "Sensitive Object":
+                show = True
+
+            elif selected == "Sensitive Text" and category == "Sensitive Text":
+                show = True
+
+            elif (
+                selected == "Warnings"
+                and confidence >= 0.90
+            ):
+                show = True
+
+            if not show:
+                continue
+
+            total += 1
+
+            if category == "Face":
+                faces += 1
+
+            elif category == "Sensitive Object":
+                objects += 1
+
+            elif category == "Sensitive Text":
+                texts += 1
+
+            if confidence >= 0.90:
+
+                icon = "🟥"
+
+            elif confidence >= 0.70:
+
+                icon = "🟨"
+
+            else:
+
+                icon = "🟩"
+
+            self.activity_log.append(
+                f"{icon} {category}\n"
+                f"Object : {label}\n"
+                f"Confidence : {confidence:.2f}\n"
+                f"Time : {timestamp}\n"
+                f"{'─'*35}\n"
+            )
+
+        self.activity_total.setText(str(total))
+        self.activity_faces.setText(str(faces))
+        self.activity_objects.setText(str(objects))
+        self.activity_text.setText(str(texts))
+
+        self.activity_footer.setText(
+            f"Filter applied: {selected}"
+        )
+
+        self.activity_status.setText(selected)
 
     def refresh_history(self):
 
         self.history_table.setRowCount(0)
 
-        rows = self.db.get_history()
+        try:
+            rows = self.db.get_history()
+        except Exception as e:
+            self.status.setText(f"History Error: {e}")
+            return
 
         self.total_records.setText(
-            f"Total Records : {len(rows)}"
+            f"Total Records : {self.db.get_total_count()}"
         )
 
         self.today_records.setText(
-            f"Today : {len(rows)}"
+            f"Today : {self.db.get_today_count()}"
         )
 
         self.high_risk.setText(
-            "High Risk : --"
+            f"High Risk : {self.db.get_high_risk_count()}"
         )
 
         for row_data in rows:
@@ -1465,28 +1732,632 @@ Time : {timestamp}
                 )
 
     def save_settings_clicked(self):
-        pass
+
+        self.face_enabled = self.settings_face.isChecked()
+
+        self.object_blur_enabled = (
+            self.settings_object.isChecked()
+        )
+
+        self.ocr_enabled = (
+            self.settings_ocr.isChecked()
+        )
+
+        self.yolo_conf = (
+            self.settings_conf_slider.value() / 100
+        )
+
+        self.blur_strength = (
+            self.settings_blur_slider.value()
+        )
+
+        if hasattr(self.yolo, "conf"):
+
+            self.yolo.conf = self.yolo_conf
+
+        self.settings_confidence.setText(
+            f"YOLO Confidence : {self.yolo_conf:.2f}"
+        )
+
+        self.settings_blur.setText(
+            f"Blur Strength : {self.blur_strength}"
+        )
+
+        self.conf_slider.setValue(
+            int(self.yolo_conf * 100)
+        )
+
+        self.blur_slider.setValue(
+            self.blur_strength
+        )
+
+        self.settings_status.setText(
+            "Settings Saved"
+        )
+
+        self.logs.append(
+            "⚙ Settings updated."
+        )
+
+        self.status.setText(
+            "Settings saved successfully."
+        )
 
     def reset_settings_clicked(self):
-        pass
+
+        # -----------------------------
+        # Restore Defaults
+        # -----------------------------
+
+        self.face_enabled = True
+        self.object_blur_enabled = True
+        self.ocr_enabled = True
+
+        self.blur_strength = 15
+        self.yolo_conf = 0.50
+
+        # -----------------------------
+        # Update Settings Page
+        # -----------------------------
+
+        self.settings_face.setChecked(True)
+        self.settings_object.setChecked(True)
+        self.settings_ocr.setChecked(True)
+
+        self.settings_gpu.setChecked(True)
+
+        self.settings_conf_slider.setValue(50)
+        self.settings_blur_slider.setValue(15)
+
+        self.settings_confidence.setText(
+            "YOLO Confidence : 0.50"
+        )
+
+        self.settings_blur.setText(
+            "Blur Strength : 15"
+        )
+
+        # -----------------------------
+        # Update Dashboard Controls
+        # -----------------------------
+
+        self.conf_slider.setValue(50)
+        self.blur_slider.setValue(15)
+
+        self.conf_slider_label.setText(
+            "Confidence : 0.50"
+        )
+
+        self.blur_slider_label.setText(
+            "Blur Strength : 15"
+        )
+
+        if hasattr(self.yolo, "conf"):
+            self.yolo.conf = self.yolo_conf
+
+        # -----------------------------
+        # Update Toggle Buttons
+        # -----------------------------
+
+        self.face_blur.setText(
+            "Face Blur : ON"
+        )
+
+        self.object_blur.setText(
+            "Object Blur : ON"
+        )
+
+        self.ocr.setText(
+            "OCR : ON"
+        )
+
+        # -----------------------------
+        # Status
+        # -----------------------------
+
+        self.settings_status.setText(
+            "Defaults Restored"
+        )
+
+        self.logs.append(
+            "🔄 Settings restored to default."
+        )
+
+        self.status.setText(
+            "Default settings restored."
+        )
+
+    def settings_confidence_changed(self, value):
+
+        self.yolo_conf = value / 100
+
+        self.settings_confidence.setText(
+            f"YOLO Confidence : {self.yolo_conf:.2f}"
+        )
+
+        if hasattr(self.yolo, "confidence"):
+
+            self.yolo.confidence = self.yolo_conf
+
+    def settings_blur_changed(self, value):
+
+        self.blur_strength = value
+
+        self.settings_blur.setText(
+            f"Blur Strength : {value}"
+        )
 
     def export_database_clicked(self):
-        pass
+
+        source = Path("database/privacy_logs.db")
+
+        if not source.exists():
+
+            self.logs.append(
+                "Database file not found."
+            )
+
+            self.settings_status.setText(
+                "Export Failed"
+            )
+
+            return
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Database",
+            "privacy_logs.db",
+            "SQLite Database (*.db)"
+        )
+
+        if not file_name:
+            return
+
+        try:
+
+            import shutil
+
+            shutil.copy2(
+                source,
+                file_name
+            )
+
+            self.logs.append(
+                f"🗄 Database exported:\n{file_name}"
+            )
+
+            self.settings_status.setText(
+                "Database Exported"
+            )
+
+            self.status.setText(
+                "Database exported successfully."
+            )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Database export failed: {e}"
+            )
+
+            self.settings_status.setText(
+                "Export Failed"
+            )
+
+            self.status.setText(
+                "Failed to export database."
+            )
 
     def backup_database_clicked(self):
-        pass
+
+        source = Path("database/privacy_logs.db")
+
+        if not source.exists():
+
+            self.logs.append(
+                "Database file not found."
+            )
+
+            self.settings_status.setText(
+                "Backup Failed"
+            )
+
+            return
+
+        backup_dir = Path("database/backups")
+        backup_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        timestamp = time.strftime(
+            "%Y%m%d_%H%M%S"
+        )
+
+        backup_file = backup_dir / (
+            f"privacy_logs_backup_{timestamp}.db"
+        )
+
+        try:
+
+            import shutil
+
+            shutil.copy2(
+                source,
+                backup_file
+            )
+
+            self.logs.append(
+                f"📦 Database backup created:\n{backup_file}"
+            )
+
+            self.settings_status.setText(
+                "Backup Created"
+            )
+
+            self.status.setText(
+                "Database backup created successfully."
+            )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Database backup failed: {e}"
+            )
+
+            self.settings_status.setText(
+                "Backup Failed"
+            )
+
+            self.status.setText(
+                "Failed to create database backup."
+            )
 
     def clear_database_clicked(self):
-        pass
+
+        try:
+
+            self.db.clear_history()
+
+            self.refresh_history()
+
+            if hasattr(self, "activity_log"):
+                self.activity_log.clear()
+
+            if hasattr(self, "activity_total"):
+                self.activity_total.setText("0")
+
+            if hasattr(self, "activity_faces"):
+                self.activity_faces.setText("0")
+
+            if hasattr(self, "activity_objects"):
+                self.activity_objects.setText("0")
+
+            if hasattr(self, "activity_text"):
+                self.activity_text.setText("0")
+
+            if hasattr(self, "analytics_total"):
+                self.update_analytics()
+
+            self.logged_faces.clear()
+            self.logged_objects.clear()
+            self.logged_text.clear()
+
+            self.settings_status.setText(
+                "Database Cleared"
+            )
+
+            self.status.setText(
+                "Database cleared successfully."
+            )
+
+            self.logs.append(
+                "🗑 Database cleared."
+            )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Database clear failed: {e}"
+            )
+
+            self.settings_status.setText(
+                "Clear Failed"
+            )
+
+            self.status.setText(
+                "Failed to clear database."
+            )
 
     def open_github(self):
-        pass
+
+        github_url = "https://github.com/padmanabhparanjape-ops/OMPD.git"
+
+        try:
+
+            webbrowser.open(github_url)
+
+            self.status.setText(
+                "Opening GitHub repository..."
+            )
+
+            self.logs.append(
+                "🌐 GitHub repository opened."
+            )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Failed to open GitHub: {e}"
+            )
+
+            self.status.setText(
+                "Unable to open GitHub."
+            )
 
     def open_license(self):
-        pass
+
+        license_path = Path("LICENSE")
+
+        try:
+
+            if license_path.exists():
+
+                webbrowser.open(
+                    license_path.resolve().as_uri()
+                )
+
+                self.status.setText(
+                    "Opening LICENSE..."
+                )
+
+                self.logs.append(
+                    "📄 LICENSE opened."
+                )
+
+            else:
+
+                self.logs.append(
+                    "LICENSE file not found."
+                )
+
+                self.status.setText(
+                    "LICENSE not found."
+                )
+
+        except Exception as e:
+
+            self.logs.append(
+                f"Failed to open LICENSE: {e}"
+            )
+
+            self.status.setText(
+                "Unable to open LICENSE."
+            )
 
     def update_analytics(self):
-        pass
+
+        try:
+
+            rows = self.db.get_history()
+
+        except Exception as e:
+
+            self.analytics_footer.setText(
+                f"Analytics Error : {e}"
+            )
+
+            return
+
+        total = len(rows)
+
+        faces = set()
+        objects = set()
+        texts = set()
+
+        object_frequency = {}
+
+        for _, category, label, confidence in rows:
+
+            if category == "Face":
+
+                faces.add(label)
+
+            elif category == "Sensitive Object":
+
+                objects.add(label)
+
+                object_frequency[label] = (
+                    object_frequency.get(label, 0) + 1
+                )
+
+            elif category == "Sensitive Text":
+
+                texts.add(label)
+
+        # -----------------------------------------
+        # Statistics
+        # -----------------------------------------
+
+        self.analytics_total.setText(str(total))
+        self.analytics_faces.setText(
+            str(len(faces))
+        )
+
+        self.analytics_objects.setText(
+            str(len(objects))
+        )
+
+        self.analytics_text.setText(
+            str(len(texts))
+        )
+
+        privacy_score = max(
+            0,
+            100
+            - len(faces) * 2
+            - len(objects) * 3
+            - len(texts) * 5
+        )
+
+        self.analytics_privacy.setText(
+            str(privacy_score)
+        )
+
+        if self._fps_smoothed > 0:
+
+            self.analytics_fps.setText(
+                f"{self._fps_smoothed:.1f}"
+            )
+
+        else:
+
+            self.analytics_fps.setText("--")
+
+        # -----------------------------------------
+        # System Information
+        # -----------------------------------------
+
+        self.camera_info.setText(
+
+            "Camera : Live"
+            if self.timer.isActive()
+            else "Camera : Offline"
+        )
+
+        self.database_info.setText(
+            "Database : Connected"
+        )
+
+        self.device_info.setText(
+
+            "AI Device : CUDA"
+
+            if hasattr(self.yolo, "device")
+            and str(self.yolo.device).startswith("cuda")
+
+            else "AI Device : CPU"
+        )
+
+        self.model_info.setText(
+            "Model : YOLOv8"
+        )
+
+        self.runtime_info.setText(
+            "Runtime : PyTorch"
+        )
+
+        self.version_info.setText(
+            "Version : 1.0"
+        )
+
+        # -----------------------------------------
+        # Charts (temporary placeholders)
+        # -----------------------------------------
+
+        self.trend_chart.setText(
+            f"Detection Trend\n\n"
+            f"Total : {total}\n"
+            f"Faces : {faces}\n"
+            f"Objects : {objects}\n"
+            f"Sensitive Text : {texts}"
+        )
+
+        if object_frequency:
+
+            distribution = ""
+
+            for label, count in sorted(
+                object_frequency.items(),
+                key=lambda x: x[1],
+                reverse=True
+            ):
+
+                distribution += (
+                    f"{label} : {count}\n"
+                )
+
+            self.object_chart.setText(
+                distribution
+            )
+
+            top_object = max(
+                object_frequency,
+                key=object_frequency.get
+            )
+
+        else:
+
+            self.object_chart.setText(
+                "No objects detected."
+            )
+
+            top_object = "None"
+
+        # -----------------------------------------
+        # AI Insights
+        # -----------------------------------------
+
+        if total == 0:
+
+            insights = (
+                "No analytics available yet.\n\n"
+                "Start the camera or run a Privacy Scan."
+            )
+
+        else:
+
+            insights = (
+                "Privacy Analytics Summary\n\n"
+
+                f"• Total detections : {total}\n"
+
+                f"• Faces detected : {len(faces)}\n"
+
+                f"• Sensitive objects : {len(objects)}\n"
+
+                f"• Sensitive text : {len(texts)}\n"
+
+                f"• Most detected object : {top_object}\n"
+
+                f"• Current Privacy Score : {privacy_score}\n"
+
+                f"• Average FPS : "
+                f"{self._fps_smoothed:.1f}\n\n"
+            )
+
+            if privacy_score >= 85:
+
+                insights += (
+                    "Overall privacy risk is LOW.\n"
+                    "System operating normally."
+                )
+
+            elif privacy_score >= 60:
+
+                insights += (
+                    "Moderate privacy risks detected.\n"
+                    "Review sensitive content."
+                )
+
+            else:
+
+                insights += (
+                    "High privacy risk detected.\n"
+                    "Avoid sharing unprotected images."
+                )
+
+        self.analytics_insights.setText(
+            insights
+        )
+
+        self.analytics_status.setText(
+            "Updated"
+        )
+
+        self.analytics_footer.setText(
+            "Analytics refreshed."
+        )
 
     # ======================================================
     # FACE BLUR
@@ -1571,7 +2442,6 @@ Time : {timestamp}
             pass
 
         event.accept()
-
 
 # ==========================================================
 # APPLICATION

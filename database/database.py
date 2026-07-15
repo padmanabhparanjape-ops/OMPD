@@ -6,9 +6,13 @@ class Database:
 
     def __init__(self, db_name="database/privacy_logs.db"):
 
-        self.connection = sqlite3.connect(db_name)
+        self.connection = sqlite3.connect(
+            db_name,
+            check_same_thread=False
+        )
 
         self.cursor = self.connection.cursor()
+        self.cursor.execute("PRAGMA journal_mode=WAL")
 
         self.create_table()
 
@@ -76,8 +80,6 @@ class Database:
 
         return self.cursor.fetchall()
     
-
-    
     def get_history(self):
 
         self.cursor.execute(
@@ -94,6 +96,44 @@ class Database:
 
         return self.cursor.fetchall()
     
+    def get_total_count(self):
+
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM detections"
+        )
+
+        return self.cursor.fetchone()[0]
+    
+    def get_today_count(self):
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        self.cursor.execute(
+
+            """
+            SELECT COUNT(*)
+            FROM detections
+            WHERE DATE(timestamp)=?
+            """,
+
+            (today,)
+        )
+
+        return self.cursor.fetchone()[0]
+    
+    def get_high_risk_count(self):
+
+        self.cursor.execute(
+
+            """
+            SELECT COUNT(*)
+            FROM detections
+            WHERE confidence>=0.90
+            """
+        )
+
+        return self.cursor.fetchone()[0]
+
     def delete_history_record(
         self,
         timestamp,
