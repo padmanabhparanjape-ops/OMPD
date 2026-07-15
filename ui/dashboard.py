@@ -88,6 +88,7 @@ class Dashboard(QWidget):
         self.logged_faces = set()
         self.logged_objects = set()
         self.logged_text = set()
+        self.logged_barcodes = set()
 
         self.yolo_every_n = 3
         self.face_every_n = 2
@@ -389,7 +390,7 @@ class Dashboard(QWidget):
         )
 
         # -----------------------------------------
-        # QR / BARCODE DETECTION
+        #  BARCODE DETECTION
         # -----------------------------------------
 
         if self.barcode_enabled:
@@ -399,6 +400,31 @@ class Dashboard(QWidget):
                 self._cached_barcodes = (
                     self.barcode_detector.detect(frame)
                 )
+
+                current_barcodes = set()
+
+                for code in self._cached_barcodes:
+
+                    # Adjust these keys if your detector returns different names
+                    barcode_type = code.get("type", "Barcode")
+                    barcode_data = code.get("data", "Unknown")
+
+                    unique_id = f"{barcode_type}:{barcode_data}"
+
+                    current_barcodes.add(unique_id)
+
+                    if unique_id not in self.logged_barcodes:
+
+                        self.db.log_detection(
+                            "Barcode",
+                            barcode_data,
+                            1.0
+                        )
+
+                        self.logged_barcodes.add(unique_id)
+
+                # Remove disappeared codes
+                self.logged_barcodes.intersection_update(current_barcodes)
 
             frame = self.barcode_detector.blur_codes(
                 frame,
@@ -548,6 +574,7 @@ class Dashboard(QWidget):
         faces = 0
         objects = 0
         texts = 0
+        barcodes = 0
 
         for timestamp, event, label, confidence in reversed(logs):
 
@@ -562,6 +589,10 @@ class Dashboard(QWidget):
             elif event == "Sensitive Text":
 
                 texts += 1
+
+            elif event == "Barcode":
+
+                barcodes += 1
 
             if confidence >= 0.90:
 
@@ -598,6 +629,7 @@ class Dashboard(QWidget):
         self.activity_faces.setText(str(faces))
         self.activity_objects.setText(str(objects))
         self.activity_text.setText(str(texts))
+        self.activity_barcodes.setText(str(barcodes))
 
         self.activity_status.setText("Monitoring")
 
@@ -1488,6 +1520,9 @@ class Dashboard(QWidget):
             elif selected == "Sensitive Text" and category == "Sensitive Text":
                 show = True
 
+            elif selected == "Barcode" and category == "Barcode":
+               show = True
+
             elif (
                 selected == "Warnings"
                 and confidence >= 0.90
@@ -1763,6 +1798,13 @@ class Dashboard(QWidget):
                 self.history_table.setRowHidden(
                     row,
                     category != "Sensitive Text"
+                )
+
+            elif selected == "Barcode":
+
+                self.history_table.setRowHidden(
+                    row,
+                    category != "Barcode"
                 )
 
     def save_settings_clicked(self):
@@ -2076,6 +2118,7 @@ class Dashboard(QWidget):
             self.logged_faces.clear()
             self.logged_objects.clear()
             self.logged_text.clear()
+            self.logged_barcodes.clear()
 
             self.settings_status.setText(
                 "Database Cleared"
@@ -2188,6 +2231,7 @@ class Dashboard(QWidget):
         faces = set()
         objects = set()
         texts = set()
+        barcodes = set()
 
         object_frequency = {}
 
@@ -2209,6 +2253,10 @@ class Dashboard(QWidget):
 
                 texts.add(label)
 
+            elif category == "Barcode":
+
+                barcodes.add(label)
+
         # -----------------------------------------
         # Statistics
         # -----------------------------------------
@@ -2226,12 +2274,17 @@ class Dashboard(QWidget):
             str(len(texts))
         )
 
+        self.analytics_barcodes.setText(
+            str(len(barcodes))
+        )
+
         privacy_score = max(
             0,
             100
             - len(faces) * 2
             - len(objects) * 3
             - len(texts) * 5
+            - len(barcodes) * 4
         )
 
         self.analytics_privacy.setText(
@@ -2352,6 +2405,8 @@ class Dashboard(QWidget):
 
                 f"• Sensitive text : {len(texts)}\n"
 
+                f"• Barcodes detected : {len(barcodes)}\n"
+
                 f"• Most detected object : {top_object}\n"
 
                 f"• Current Privacy Score : {privacy_score}\n"
@@ -2460,7 +2515,7 @@ class Dashboard(QWidget):
         )
 
     # ======================================================
-    # QR / BARCODE BLUR
+    #  BARCODE BLUR
     # ======================================================
 
     def toggle_barcode_blur(self):
