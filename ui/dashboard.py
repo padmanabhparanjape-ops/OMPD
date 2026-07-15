@@ -2289,16 +2289,6 @@ class Dashboard(QWidget):
             str(privacy_score)
         )
 
-        if self._fps_smoothed > 0:
-
-            self.analytics_fps.setText(
-                f"{self._fps_smoothed:.1f}"
-            )
-
-        else:
-
-            self.analytics_fps.setText("--")
-
         # -----------------------------------------
         # System Information
         # -----------------------------------------

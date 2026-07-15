@@ -1079,11 +1079,6 @@ def build_analytics_page(self):
         "100"
     )
 
-    fps_card, self.analytics_fps = stat_card(
-        "Average FPS",
-        "--"
-    )
-
     stats.addWidget(total_card,0,0)
     stats.addWidget(faces_card,0,1)
     stats.addWidget(objects_card,0,2)
@@ -1091,8 +1086,6 @@ def build_analytics_page(self):
     stats.addWidget(text_card,1,0)
     stats.addWidget(barcode_card,1,1)
     stats.addWidget(privacy_card,1,2)
-
-    stats.addWidget(fps_card,2,1)
 
     analytics_layout.addLayout(stats)
 
