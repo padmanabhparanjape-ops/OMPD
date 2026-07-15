@@ -218,9 +218,9 @@ def build_home_page(self):
 
     left_widget = QWidget()
     left_widget.setSizePolicy(
-    QSizePolicy.Expanding,
-    QSizePolicy.Expanding
-)
+        QSizePolicy.Expanding,
+        QSizePolicy.Expanding
+    )
     left_layout = QVBoxLayout(left_widget)
     left_layout.setSpacing(15)
 
@@ -1734,21 +1734,35 @@ def build_right_panel(self):
     detect_title = QLabel("🎛 Controls")
     detect_title.setObjectName("CardTitle")
 
-    detect_layout.addWidget(detect_title)
-
-    grid = QGridLayout()
-    grid.setHorizontalSpacing(10)
-    grid.setVerticalSpacing(10)
-
     self.camera_button = QPushButton(" Start Camera")
-    self.face_blur = QPushButton(" Face : ON")
-    self.object_blur = QPushButton(" Object : ON")
-    self.ocr = QPushButton(" OCR : ON")
+
+    self.face_blur = QPushButton("Face Blur : ON")
+    self.object_blur = QPushButton("Object Blur : ON")
+    self.ocr = QPushButton("OCR : ON")
+    self.barcode_blur = QPushButton("Barcode : ON")
 
     self.camera_button.clicked.connect(self.toggle_camera)
     self.face_blur.clicked.connect(self.toggle_face_blur)
     self.object_blur.clicked.connect(self.toggle_object_blur)
     self.ocr.clicked.connect(self.toggle_ocr)
+    self.barcode_blur.clicked.connect(self.toggle_barcode_blur)
+
+    self.conf_slider_label = QLabel(
+        f"Confidence : {self.yolo_conf:.2f}"
+    )
+
+    self.conf_slider = QSlider(Qt.Horizontal)
+    self.conf_slider.setRange(0, 100)
+    self.conf_slider.setValue(int(self.yolo_conf * 100))
+    self.conf_slider.valueChanged.connect(
+        self.on_conf_slider_changed
+    )
+
+    detect_layout.addWidget(detect_title)
+
+    grid = QGridLayout()
+    grid.setHorizontalSpacing(10)
+    grid.setVerticalSpacing(10)
 
     for btn in (
         self.camera_button,
@@ -1756,20 +1770,22 @@ def build_right_panel(self):
         self.object_blur,
         self.ocr,
     ):
-
         btn.setMinimumHeight(50)
-
         btn.setSizePolicy(
             QSizePolicy.Expanding,
             QSizePolicy.Fixed
         )
 
-    grid.addWidget(self.camera_button, 0, 0)
-    grid.addWidget(self.face_blur, 0, 1)
-    grid.addWidget(self.object_blur, 1, 0)
-    grid.addWidget(self.ocr, 1, 1)
+    grid.addWidget(self.camera_button,0,0)
+    grid.addWidget(self.face_blur,0,1)
+    grid.addWidget(self.object_blur,1,0)
+    grid.addWidget(self.ocr,1,1)
+    grid.addWidget(self.barcode_blur,2,0,1,2)
 
     detect_layout.addLayout(grid)
+
+    detect_layout.addWidget(self.conf_slider_label)
+    detect_layout.addWidget(self.conf_slider)
 
     right_layout.addWidget(detect_card)
     right_layout.addSpacing(8)
@@ -1811,6 +1827,7 @@ def build_right_panel(self):
     txt_card, self.text_value = stat("Sensitive", "0")
     privacy_stat, self.privacy_value = stat("Privacy", "100")
     threat_stat, self.threat_value = stat("Threat", "LOW")
+    barcode_card, self.barcode_value = stat("Barcodes", "0")
 
     stats_layout.addWidget(fps_card, 0, 0)
     stats_layout.addWidget(face_card, 0, 1)
@@ -1818,6 +1835,7 @@ def build_right_panel(self):
     stats_layout.addWidget(txt_card, 1, 1)
     stats_layout.addWidget(privacy_stat, 2, 0)
     stats_layout.addWidget(threat_stat, 2, 1)
+    stats_layout.addWidget(barcode_card, 3, 0)
 
     right_layout.addWidget(stats)
     right_layout.addSpacing(8)
@@ -1842,8 +1860,8 @@ def build_right_panel(self):
     )
     self.logs.setReadOnly(True)
     self.logs.setLineWrapMode(
-    QTextEdit.WidgetWidth
-)
+        QTextEdit.WidgetWidth
+    )
 
     activity_layout.addWidget(activity_title)
     activity_layout.addWidget(self.logs)
