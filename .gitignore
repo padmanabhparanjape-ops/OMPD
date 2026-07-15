@@ -16,3 +16,22 @@ logs/
 
 # YOLO model (recommended not to commit)
 *.pt
+
+# Environment variables
+.env
+
+# Build artifacts
+build/
+dist/
+
+# Python packaging
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PyInstaller
+*.spec

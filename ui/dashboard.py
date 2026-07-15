@@ -246,9 +246,7 @@ class Dashboard(QWidget):
                     f"FPS : {self._fps_smoothed:.1f}"
                 )
 
-                self.fps_value.setText(
-                    f"{self._fps_smoothed:.1f}"
-                )
+                self.fps.setText(f"FPS : {fps:.1f}")
 
         self._last_frame_time = now
 
